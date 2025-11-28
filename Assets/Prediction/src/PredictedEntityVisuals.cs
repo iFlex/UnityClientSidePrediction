@@ -15,7 +15,6 @@ namespace Prediction
         
         private GameObject serverGhost;
         private GameObject clientGhost;
-        private PlayerController pc;
         
         public void SetClientPredictedEntity(ClientPredictedEntity clientPredictedEntity)
         {
@@ -29,9 +28,6 @@ namespace Prediction
                 serverGhost = Instantiate(serverGhostPrefab, Vector3.zero, Quaternion.identity);
                 clientGhost = Instantiate(clientGhostPrefab, Vector3.zero, Quaternion.identity, follow.transform);
             }
-            
-            //TODO: better wiring
-            pc = clientPredictedEntity.gameObject.GetComponent<PlayerController>();
         }
 
         //TODO: configurable
@@ -40,11 +36,6 @@ namespace Prediction
         {
             if (!follow)
                 return;
-            
-            if (pc.pcam)
-            {
-                pc.pcam.Follow = visualsEntity.transform;
-            }
             
             float lerpFactor = Mathf.Max(0, defaultLerpFactor - clientPredictedEntity.GetResimulationOverbudget() * 20f);
             visualsEntity.transform.position = Vector3.Lerp(visualsEntity.transform.position, follow.transform.position, Time.deltaTime * lerpFactor);

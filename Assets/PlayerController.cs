@@ -53,7 +53,15 @@ public class PlayerController : NetworkBehaviour, PredictableComponent, Predicta
     {
         SetCamera(SingletonUtils.instance.camera);
     }
-    
+
+    private void Update()
+    {
+        if (pcam && !pcam.Follow)
+        {
+            pcam.Follow = pev.transform;
+        }
+    }
+
     private Vector3 inputDir;
     private bool isBoosting;
     public void ApplyForces()

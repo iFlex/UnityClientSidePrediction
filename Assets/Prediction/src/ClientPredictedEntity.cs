@@ -14,8 +14,11 @@ namespace Prediction
         //STATE TRACKING
         public uint maxAllowedAvgResimPerTick = 1;
         public GameObject gameObject;
-        internal RingBuffer<PredictionInputRecord> localInputBuffer;
-        internal RingBuffer<PhysicsStateRecord> localStateBuffer;
+        
+        //TODO: make visible for testing in tests assembly
+        public RingBuffer<PredictionInputRecord> localInputBuffer;
+        //TODO: make visible for testing in tests assembly
+        public RingBuffer<PhysicsStateRecord> localStateBuffer;
         
         //This is used exclusively in follower mode (predicted entity not controlled by user).
         private uint lastAppliedFollowerTick = 0;
@@ -24,7 +27,9 @@ namespace Prediction
             resimulationEligibilityCheckHook;
         Func<PhysicsStateRecord, PhysicsStateRecord, bool> singleStateResimulationEligibilityHook;
         public PhysicsController physicsController;
-        internal TickIndexedBuffer<PhysicsStateRecord> serverStateBuffer;
+        
+        //TODO: make visible for testing in tests assembly
+        public TickIndexedBuffer<PhysicsStateRecord> serverStateBuffer;
 
         internal uint totalTicks = 0;
         internal uint totalResimulationSteps = 0;
