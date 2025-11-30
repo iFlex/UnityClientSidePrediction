@@ -3,6 +3,7 @@ using DefaultNamespace;
 using Mirror;
 using Prediction;
 using Prediction.data;
+using Prediction.Interpolation;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -46,6 +47,7 @@ public class PlayerController : NetworkBehaviour, PredictableComponent, Predicta
     {
         clientPredictedEntity = new ClientPredictedEntity(30, rb, gameObject, new PredictableControllableComponent[1]{this}, new PredictableComponent[1]{this});
         clientPredictedEntity.gameObject = gameObject;
+        //pev.visualsInterpolationsProvider = new MirrorSnapshotInterpolationBridge();
         pev.SetClientPredictedEntity(clientPredictedEntity);
     }
 
@@ -58,13 +60,13 @@ public class PlayerController : NetworkBehaviour, PredictableComponent, Predicta
     {
         if (pcam && !pcam.Follow && clientPredictedEntity != null)
         {
-            //pcam.Follow = pev.transform;
+            //pcam.Follow = pev.visualsEntity.transform;
             pcam.Follow = clientPredictedEntity.gameObject.transform;
         }
 
         if (clientPredictedEntity != null && SingletonUtils.instance.clientText)
         {
-            SingletonUtils.instance.clientText.text = $"Tick:{clientPredictedEntity.totalTicks}\n ServerDelay:{clientPredictedEntity.GetServerDelay()}\n Resimulations:{clientPredictedEntity.totalResimulations}\n AvgResimLen:{clientPredictedEntity.GetAverageResimPerTick()} TotalResimSteps:{clientPredictedEntity.totalResimulationSteps}\n Skips:{clientPredictedEntity.totalSimulationSkips}";
+            SingletonUtils.instance.clientText.text = $"Tick:{clientPredictedEntity.totalTicks}\n ServerDelay:{clientPredictedEntity.GetServerDelay()}\n Resimulations:{clientPredictedEntity.totalResimulations}\n AvgResimLen:{clientPredictedEntity.GetAverageResimPerTick()}\n TotalResimSteps:{clientPredictedEntity.totalResimulationSteps}\n Skips:{clientPredictedEntity.totalSimulationSkips}\n DirectSnaps:{clientPredictedEntity.totalDesyncToSnapCount}";
         }
     }
 

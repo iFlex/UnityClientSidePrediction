@@ -5,34 +5,48 @@ namespace Prediction.policies.singleInstance
 {
     public class SimpleConfigurableResimulationDecider : SingleSnapshotInstanceResimChecker
     {
-        private float maxDelta;
+        private float distResimThreshold;
+        private float maxResimulationDelta;
         private float maxAngleDelta;
         private float maxVeloAngleDelta;
         private float maxAngularVeloMagDelta;
 
         public SimpleConfigurableResimulationDecider()
         {
-            maxDelta = 0.1f;
+            //distResimThreshold = 1f;
+            distResimThreshold = 0.1f;
+            //distResimThreshold = 0.01f;
+            //distResimThreshold = 0.001f;  //This was optimum at some point?
+            //distResimThreshold = 0.0001f; //lots of resims
+            maxResimulationDelta = 1f;
+            
             maxAngleDelta = 0f;
             maxVeloAngleDelta = 0;
             maxAngularVeloMagDelta = 0;
         }
         
-        public SimpleConfigurableResimulationDecider(float maxDistDelta, float maxAngleDelta, float maxVeloAngleDelta, float maxAngularVeloMagDelta)
+        public SimpleConfigurableResimulationDecider(float distResimThreshold, float maxResimulationDelta, float maxAngleDelta, float maxVeloAngleDelta, float maxAngularVeloMagDelta)
         {
-            this.maxDelta = maxDistDelta;
+            this.distResimThreshold = distResimThreshold;
+            this.maxResimulationDelta = maxResimulationDelta;
+            
             this.maxAngleDelta = maxAngleDelta;
             this.maxVeloAngleDelta = maxVeloAngleDelta;
             this.maxAngularVeloMagDelta = maxAngularVeloMagDelta;
         }
 
-        public virtual bool Check(PhysicsStateRecord local, PhysicsStateRecord server)
+        public virtual PredictionDecision Check(PhysicsStateRecord local, PhysicsStateRecord server)
         {
-            if (maxDelta > 0)
+            if (distResimThreshold > 0)
             {
-                if ((local.position - server.position).magnitude > maxDelta)
+                float dist = (local.position - server.position).magnitude;
+                if (dist > maxResimulationDelta)
                 {
-                    return true;
+                    //return PredictionDecision.SNAP;
+                }
+                if (dist > distResimThreshold)
+                {
+                    return PredictionDecision.RESIMULATE;
                 }
             }
 
@@ -40,7 +54,7 @@ namespace Prediction.policies.singleInstance
             {
                 if (Quaternion.Angle(local.rotation, server.rotation) > maxAngleDelta)
                 {
-                    return true;
+                    return PredictionDecision.RESIMULATE;
                 }
             }
             
@@ -48,7 +62,7 @@ namespace Prediction.policies.singleInstance
             {
                 if (Vector3.Angle(local.velocity, server.velocity) > maxVeloAngleDelta)
                 {
-                    return true;
+                    return PredictionDecision.RESIMULATE;
                 }
             }
             
@@ -56,11 +70,11 @@ namespace Prediction.policies.singleInstance
             {
                 if ((local.velocity.magnitude - server.velocity.magnitude) > maxAngularVeloMagDelta)
                 {
-                    return true;
+                    return PredictionDecision.RESIMULATE;
                 }
             }
             
-            return false;
+            return PredictionDecision.NOOP;
         }
     }
 }

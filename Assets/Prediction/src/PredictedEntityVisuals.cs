@@ -1,11 +1,12 @@
 ﻿using Prediction.data;
+using Prediction.Interpolation;
 using UnityEngine;
 
 namespace Prediction
 {
     public class PredictedEntityVisuals : MonoBehaviour
     {
-        [SerializeField] private GameObject visualsEntity;
+        [SerializeField] public GameObject visualsEntity;
         [SerializeField] private bool debug = false;
         [SerializeField] private GameObject serverGhostPrefab;
         [SerializeField] private GameObject clientGhostPrefab;
@@ -13,6 +14,7 @@ namespace Prediction
         private ClientPredictedEntity clientPredictedEntity;
         [SerializeField] private GameObject follow;
         
+        //public VisualsInterpolationsProvider visualsInterpolationsProvider;
         private GameObject serverGhost;
         private GameObject clientGhost;
         
@@ -21,8 +23,9 @@ namespace Prediction
             this.clientPredictedEntity = clientPredictedEntity;
             follow = clientPredictedEntity.gameObject;
             //TODO: listen for destruction events
-            
             visualsEntity.transform.SetParent(null);
+            
+            //visualsInterpolationsProvider?.SetInterpolationTarget(visualsEntity.transform);
             if (debug)
             {
                 serverGhost = Instantiate(serverGhostPrefab, Vector3.zero, Quaternion.identity);
@@ -36,11 +39,18 @@ namespace Prediction
         {
             if (!follow)
                 return;
-            
-            float lerpFactor = Mathf.Max(0, defaultLerpFactor - clientPredictedEntity.GetResimulationOverbudget() * 20f);
-            visualsEntity.transform.position = Vector3.Lerp(visualsEntity.transform.position, follow.transform.position, Time.deltaTime * lerpFactor);
-            visualsEntity.transform.rotation = Quaternion.Lerp(visualsEntity.transform.rotation, follow.transform.rotation, Time.deltaTime * lerpFactor);
 
+            //TODO: proper integration
+            //if (visualsInterpolationsProvider != null)
+            //{
+            //    visualsInterpolationsProvider.Update();
+            //}
+            //else
+            {
+                visualsEntity.transform.position = Vector3.Lerp(visualsEntity.transform.position, follow.transform.position, Time.deltaTime * 20);
+                visualsEntity.transform.rotation = Quaternion.Lerp(visualsEntity.transform.rotation, follow.transform.rotation, Time.deltaTime * 20);
+            }
+            
             if (debug)
             {
                 PhysicsStateRecord rec = clientPredictedEntity.serverStateBuffer.GetEnd();

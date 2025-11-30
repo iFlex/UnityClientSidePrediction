@@ -5,6 +5,7 @@ namespace Prediction.data
     public class PhysicsStateRecord
     {
         public uint tickId;
+        public double tmpServerTime;
         public Vector3 position;
         public Quaternion rotation;
         public Vector3 velocity;

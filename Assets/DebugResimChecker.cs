@@ -1,4 +1,5 @@
-﻿using Prediction.data;
+﻿using Prediction;
+using Prediction.data;
 using Prediction.policies.singleInstance;
 using UnityEngine;
 
@@ -10,8 +11,9 @@ namespace DefaultNamespace
         private float maxdist = 0;
         private float totalBreakingDist = 0;
         private int breakingDistCount = 0;
+        private int directSnapCount = 0;
         
-        public override bool Check(PhysicsStateRecord l, PhysicsStateRecord s)
+        public override PredictionDecision Check(PhysicsStateRecord l, PhysicsStateRecord s)
         {
             float dist = (l.position - s.position).magnitude;
             if (dist > maxdist)
@@ -19,14 +21,18 @@ namespace DefaultNamespace
                 maxdist = dist;
             }
             
-            bool outcome = base.Check(l, s);
-            if (outcome)
+            PredictionDecision outcome = base.Check(l, s);
+            if (outcome == PredictionDecision.RESIMULATE)
             {
                 totalBreakingDist += dist;
                 breakingDistCount++;
             }
+            if (outcome == PredictionDecision.SNAP)
+            {
+                directSnapCount++;
+            }
             if (PRED_DEBUG)
-                Debug.Log($"[PredictionMirrorBridge][DebugResimCheck]{((l.tickId != s.tickId) ? "ERR_WARNING" : "")} tick_local:{l.tickId} tick_server:{s.tickId} distance:{dist} avgBreakDist:{(breakingDistCount  > 0 ? totalBreakingDist / breakingDistCount : 0)} maxDist:{maxdist} breakCount:{breakingDistCount}");
+                Debug.Log($"[PredictionMirrorBridge][DebugResimCheck]{((l.tickId != s.tickId) ? "ERR_WARNING" : "")} tick_local:{l.tickId} tick_server:{s.tickId} distance:{dist} avgBreakDist:{(breakingDistCount  > 0 ? totalBreakingDist / breakingDistCount : 0)} maxDist:{maxdist} breakCount:{breakingDistCount} directToSnap:{directSnapCount}");
             return outcome;
         }
     }

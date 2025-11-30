@@ -177,6 +177,7 @@ namespace DefaultNamespace
             if (MSG_DEBUG)
                 Debug.Log($"[PredictionMirrorBridge][ReportFromServer] Received serrver_report: netId:{entityNetId} tickId:{data.tickId} data:{data}");
             
+            data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
             predictionManager.OnFollowerServerStateReceived(entityNetId, data);
         }
         
@@ -186,6 +187,7 @@ namespace DefaultNamespace
             if (MSG_DEBUG)
                 Debug.Log($"[PredictionMirrorBridge][ReportFromServer] Received serrver_report: netId:{entityNetId} tickId:{data.tickId} data:{data}");
             
+            data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
             predictionManager.OnFollowerServerStateReceived(entityNetId, data);
         }
     }

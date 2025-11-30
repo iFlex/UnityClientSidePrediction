@@ -208,7 +208,6 @@ GameObject:
   - component: {fileID: 68771394}
   - component: {fileID: 68771398}
   - component: {fileID: 68771392}
-  - component: {fileID: 68771397}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -306,24 +305,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &68771397
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 68771391}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 96b149f511061407fb54895c057b7736, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  wrap: {fileID: 0}
-  latency: 100
-  jitter: 0.13
-  jitterSpeed: 1
-  unreliableLoss: 2
-  unreliableScramble: 2
 --- !u!114 &68771398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -959,7 +940,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 66.2
+  m_fontSize: 58.85
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -1095,11 +1076,11 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 66.2
+  m_fontSize: 58.85
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
-  m_fontSizeMin: 18
+  m_fontSizeMin: 5
   m_fontSizeMax: 72
   m_fontStyle: 0
   m_HorizontalAlignment: 1
