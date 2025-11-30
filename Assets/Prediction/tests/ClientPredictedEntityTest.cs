@@ -98,63 +98,28 @@ namespace Prediction.Tests
         [Test]
         public void TestTickAdvanceAndInputReport()
         {
-            PhysicsStateRecord expectedState = new PhysicsStateRecord();
-            expectedState.From(rigidbody);
+            var inputs = new [] { Vector3.zero, Vector3.left, Vector3.right, Vector3.up, Vector3.down };
+            var serverTicks = GenerateServerStates(inputs);
 
-            uint tickId = 0;
-            component.inputVector = Vector3.left;
-            PredictionInputRecord inputRecord = entity.ClientSimulationTick(tickId);
-            inputRecord.ReadReset();
-            Vector3 sampled = new Vector3(inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar());
-            //Correct sampling done by tick
-            Assert.AreEqual(component.inputVector, sampled);
-            //Correct setting of the state
-            Assert.AreEqual(component.stateVector, sampled);
-            //Force application call
-            Assert.AreEqual(1, component.forceApplyCallCount);
-            //Buffered state
-            AssertInputStateAtTick(0, Vector3.left);
-            rigidbody.position += Vector3.left;
-            
-            tickId++;
-            component.inputVector = Vector3.right;
-            expectedState.From(rigidbody);
-            inputRecord = entity.ClientSimulationTick(tickId);
-            inputRecord.ReadReset();
-            sampled = new Vector3(inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar());
-            Assert.AreEqual(component.inputVector, sampled);
-            Assert.AreEqual(component.stateVector, sampled);
-            Assert.AreEqual(2, component.forceApplyCallCount);
-            AssertInputStateAtTick(1, Vector3.right);
-            Assert.AreEqual(expectedState, entity.localStateBuffer.Get(0));
-            rigidbody.position += Vector3.right;
-            
-            tickId++;
-            component.inputVector = Vector3.up;
-            expectedState.From(rigidbody);
-            inputRecord = entity.ClientSimulationTick(tickId);
-            inputRecord.ReadReset();
-            sampled = new Vector3(inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar());
-            Assert.AreEqual(component.inputVector, sampled);
-            Assert.AreEqual(component.stateVector, sampled);
-            Assert.AreEqual(3, component.forceApplyCallCount);
-            AssertInputStateAtTick(2, Vector3.up);
-            expectedState.tickId = 1;
-            Assert.AreEqual(expectedState, entity.localStateBuffer.Get(1));
-            rigidbody.position += Vector3.up;
-            
-            tickId++;
-            component.inputVector = Vector3.down;
-            expectedState.From(rigidbody);
-            inputRecord = entity.ClientSimulationTick(tickId);
-            inputRecord.ReadReset();
-            sampled = new Vector3(inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar());
-            Assert.AreEqual(component.inputVector, sampled);
-            Assert.AreEqual(component.stateVector, sampled);
-            Assert.AreEqual(4, component.forceApplyCallCount);
-            AssertInputStateAtTick(3, Vector3.down);
-            expectedState.tickId = 2;
-            Assert.AreEqual(expectedState, entity.localStateBuffer.Get(2));
+            //TODO: modernize test, generate all expected positions instead of sampling physics rb & check
+            for (uint tickId = 1; tickId < inputs.Length; ++tickId)
+            {
+                component.inputVector = inputs[tickId];
+                PredictionInputRecord inputRecord = entity.ClientSimulationTick(tickId);
+                entity.SamplePhysicsState(tickId);
+                
+                inputRecord.ReadReset();
+                Vector3 sampled = new Vector3(inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar(), inputRecord.ReadNextScalar());
+                //Correct sampling done by tick
+                Assert.AreEqual(component.inputVector, sampled);
+                //Correct setting of the state
+                Assert.AreEqual(component.stateVector, sampled);
+                //Force application call
+                Assert.AreEqual(tickId, component.forceApplyCallCount);
+                
+                //Buffered state
+                Assert.AreEqual(serverTicks[tickId], entity.localStateBuffer.Get((int)tickId));
+            }
         }
 
         [Test]
@@ -168,6 +133,7 @@ namespace Prediction.Tests
             {
                 component.inputVector = inputs[tickId];
                 PredictionInputRecord inputRecord = entity.ClientSimulationTick(tickId);
+                entity.SamplePhysicsState(tickId);
                 if (tickId >= serverDelay)
                 {
                     entity.BufferServerTick(tickId, serverTicks[tickId - serverDelay]);
@@ -245,6 +211,7 @@ namespace Prediction.Tests
             {
                 component.inputVector = inputs[tickId];
                 entity.ClientSimulationTick(tickId);
+                entity.SamplePhysicsState(tickId);
                 if (tickId > serverDelay)
                 {
                     entity.BufferServerTick(tickId, serverTicks[tickId - serverDelay]);
@@ -291,6 +258,7 @@ namespace Prediction.Tests
             {
                 component.inputVector = inputs[tickId];
                 entity.ClientSimulationTick(tickId);
+                entity.SamplePhysicsState(tickId);
                 if (tickId > serverDelay)
                 {
                     entity.BufferServerTick(tickId, serverTicks[tickId - serverDelay]);
@@ -315,18 +283,7 @@ namespace Prediction.Tests
         public void TestMultiResimulationPrevention()
         {
             entity.protectFromOversimulation = true;
-            int resimulationsCounter = 0;
-            entity.resimulation.AddEventListener((started) =>
-            {
-                if (started)
-                    resimulationsCounter++;
-            });
-            int resimSkips = 0;
-            entity.resimulationSkipped.AddEventListener((tr) =>
-            {
-                if (tr)
-                    resimSkips++;
-            });
+            
             int predictionAcceptable = 0;
             entity.predictionAcceptable.AddEventListener((tr) =>
             {
@@ -343,12 +300,13 @@ namespace Prediction.Tests
                 serverPos += Vector3.left * 2;
                 psr.position = serverPos;
                 entity.ClientSimulationTick(tickId);
+                entity.SamplePhysicsState(tickId);
                 psr.tickId = tickId - 4;
                 entity.BufferServerTick(tickId - 1, psr);
             }
             Assert.AreEqual(0, predictionAcceptable);
-            Assert.AreEqual(66, resimSkips); //33% resimulations
-            Assert.AreEqual(34, resimulationsCounter);
+            Assert.AreEqual(67, entity.totalSimulationSkips); //33% resimulations
+            Assert.AreEqual(33, entity.totalResimulations);
         }
         
         //TODO: test slowdown to catch server? or snap?

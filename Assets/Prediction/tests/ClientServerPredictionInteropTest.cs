@@ -58,9 +58,11 @@ namespace Prediction.Tests
             {
                 clientComponent.inputVector = inputs[tickId];
                 PredictionInputRecord record = clientEntity.ClientSimulationTick(tickId);
+                clientEntity.SamplePhysicsState(tickId);
                 serverEntity.BufferClientTick(tickId, record);
                 PhysicsStateRecord serverRecord = serverEntity.ServerSimulationTick();
                 clientEntity.BufferServerTick(tickId, serverRecord);
+                Assert.AreEqual(serverRecord.position, clientRigidbody.position);
                 Assert.AreEqual(serverRigidbody.position, clientRigidbody.position);
             }
         }
@@ -82,12 +84,14 @@ namespace Prediction.Tests
             {
                 clientComponent.inputVector = inputs[tickId];
                 PredictionInputRecord record = clientEntity.ClientSimulationTick(tickId);
+                clientEntity.SamplePhysicsState(tickId);
                 serverEntity.BufferClientTick(tickId, record);
             }
             for (uint tickId = delay; tickId < inputs.Length; ++tickId)
             {
                 clientComponent.inputVector = inputs[tickId];
                 PredictionInputRecord record = clientEntity.ClientSimulationTick(tickId);
+                clientEntity.SamplePhysicsState(tickId);
                 serverEntity.BufferClientTick(tickId, record);
                 PhysicsStateRecord serverRecord = serverEntity.ServerSimulationTick();
                 clientEntity.BufferServerTick(tickId, serverRecord);
@@ -97,6 +101,7 @@ namespace Prediction.Tests
             {
                 clientComponent.inputVector = inputs[tickId % inputs.Length];
                 PredictionInputRecord record = clientEntity.ClientSimulationTick(tickId);
+                clientEntity.SamplePhysicsState(tickId);
                 serverEntity.BufferClientTick(tickId, record);
                 PhysicsStateRecord serverRecord = serverEntity.ServerSimulationTick();
                 clientEntity.BufferServerTick(tickId, serverRecord);

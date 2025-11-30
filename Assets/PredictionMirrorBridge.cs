@@ -19,7 +19,6 @@ namespace DefaultNamespace
         
         public bool reliable = false;
         public int resimCounter = 0;
-        public int resimSkipCounter = 0;
 
         private DebugResimChecker resimulationDecider = new DebugResimChecker();
         private void Awake()
@@ -109,15 +108,6 @@ namespace DefaultNamespace
                             resimCounter++;
                             if (PRED_DEBUG)
                                 Debug.Log($"[Prediction][ResimulationStart]({resimCounter}) tickId:{entity.clientPredictedEntity.GetTotalTicks()} avgResim:{entity.clientPredictedEntity.GetAverageResimPerTick()}");
-                        }
-                    });
-                    entity.clientPredictedEntity.resimulationSkipped.AddEventListener(b =>
-                    {
-                        if (b)
-                        {
-                            resimSkipCounter++;
-                            if (PRED_DEBUG)
-                                Debug.Log($"[Prediction][ResimulationSkipped]({resimSkipCounter})");
                         }
                     });
                 }

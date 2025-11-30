@@ -173,6 +173,10 @@ namespace Prediction
             }
             
             physicsController.Simulate();
+            if (isClient && localEntity != null)
+            {
+                localEntity.SamplePhysicsState(tickId);
+            }
         }
         
         public void OnFollowerServerStateReceived(uint entityId, PhysicsStateRecord stateRecord)

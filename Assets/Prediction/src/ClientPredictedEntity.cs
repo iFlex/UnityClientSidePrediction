@@ -82,12 +82,6 @@ namespace Prediction
         
         public PredictionInputRecord ClientSimulationTick(uint tickId)
         {
-            if (tickId > 0)
-            {
-                //NOTE: no need to sample initial state, it's irellevant.
-                //This samples the state AFTER the tick has run, hence the - 1.
-                SamplePhysicsState(tickId - 1);
-            }
             PredictionInputRecord inputRecord = SampleInput(tickId);
             LoadInput(inputRecord);
             ApplyForces();
@@ -117,7 +111,7 @@ namespace Prediction
             }
         }
         
-        void SamplePhysicsState(uint tickId)
+        public void SamplePhysicsState(uint tickId)
         {
             //TODO: correctly convert tick to index!
             PhysicsStateRecord stateData = localStateBuffer.Get((int)tickId);
@@ -169,7 +163,7 @@ namespace Prediction
                     
                     case PredictionDecision.SNAP:
                         totalDesyncToSnapCount++;
-                        SnapTo(latestServerState, true);
+                        SnapTo(latestServerState);
                         break;
                 }
                 //TODO: consider a decision where we need to pause simulation on client to let server catch up...
@@ -188,7 +182,7 @@ namespace Prediction
                 totalSimulationSkips++;
                 if (snapOnSimSkip)
                 {
-                    SnapTo(server, true);
+                    SnapTo(server);
                 }
             }
         }
@@ -202,16 +196,12 @@ namespace Prediction
             return singleStateResimulationEligibilityHook.Invoke(localState, serverState);
         }
 
-        void SnapTo(PhysicsStateRecord serverState, bool fireSnapEvent = false)
+        void SnapTo(PhysicsStateRecord serverState)
         {
             rigidbody.position = serverState.position;
             rigidbody.rotation = serverState.rotation;
             rigidbody.linearVelocity = serverState.velocity;
             rigidbody.angularVelocity = serverState.angularVelocity;
-            if (fireSnapEvent)
-            {
-                resimulationSkipped?.Dispatch(true);
-            }
         }
         
         void ResimulateFrom(uint startTick, uint lastAppliedTick, PhysicsStateRecord startState)
@@ -281,6 +271,5 @@ namespace Prediction
         public SafeEventDispatcher<bool> predictionAcceptable = new();
         public SafeEventDispatcher<bool> resimulation = new();
         public SafeEventDispatcher<bool> resimulationStep = new();
-        public SafeEventDispatcher<bool> resimulationSkipped = new();
     }
 }
