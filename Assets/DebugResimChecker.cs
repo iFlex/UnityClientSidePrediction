@@ -11,6 +11,7 @@ namespace DefaultNamespace
         private float maxdist = 0;
         private float totalBreakingDist = 0;
         private int breakingDistCount = 0;
+        private int directSnapCount = 0;
         
         public override PredictionDecision Check(PhysicsStateRecord l, PhysicsStateRecord s)
         {
@@ -26,8 +27,12 @@ namespace DefaultNamespace
                 totalBreakingDist += dist;
                 breakingDistCount++;
             }
+            if (outcome == PredictionDecision.SNAP)
+            {
+                directSnapCount++;
+            }
             if (PRED_DEBUG)
-                Debug.Log($"[PredictionMirrorBridge][DebugResimCheck]{((l.tickId != s.tickId) ? "ERR_WARNING" : "")} tick_local:{l.tickId} tick_server:{s.tickId} distance:{dist} avgBreakDist:{(breakingDistCount  > 0 ? totalBreakingDist / breakingDistCount : 0)} maxDist:{maxdist} breakCount:{breakingDistCount}");
+                Debug.Log($"[PredictionMirrorBridge][DebugResimCheck]{((l.tickId != s.tickId) ? "ERR_WARNING" : "")} tick_local:{l.tickId} tick_server:{s.tickId} distance:{dist} avgBreakDist:{(breakingDistCount  > 0 ? totalBreakingDist / breakingDistCount : 0)} maxDist:{maxdist} breakCount:{breakingDistCount} directToSnap:{directSnapCount}");
             return outcome;
         }
     }

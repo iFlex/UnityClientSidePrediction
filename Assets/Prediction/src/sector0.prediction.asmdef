@@ -1,3 +1,4 @@
 {
-	"name": "sector0.prediction"
+	"name": "sector0.prediction",
+	"references":[ "GUID:72872094b21c16e48b631b2224833d49", "GUID:30817c1a0e6d646d99c048fc403f5979" ]
 }

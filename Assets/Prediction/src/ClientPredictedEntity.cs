@@ -1,6 +1,7 @@
 ﻿using System;
 using Assets.Scripts.Systems.Events;
 using Prediction.data;
+using Prediction.Interpolation;
 using Prediction.Simulation;
 using Prediction.utils;
 using UnityEngine;
@@ -30,7 +31,7 @@ namespace Prediction
         //TODO: make visible for testing in tests assembly
         public TickIndexedBuffer<PhysicsStateRecord> serverStateBuffer;
         //TODO: proper wire in...
-        //public VisualsInterpolationsProvider interpolationsProvider;// = new MirrorSnapshotInterpolationBridge();
+        public VisualsInterpolationsProvider interpolationsProvider = new MirrorSnapshotInterpolationBridge();
             
         public uint totalTicks = 0;
         public uint totalResimulationSteps = 0;
@@ -132,7 +133,7 @@ namespace Prediction
             if (AddServerState(lastAppliedFollowerTick, lastArrivedServerState))
             {
                 //TODO: will this work correctly with tickId being always the same as the server's?
-                //interpolationsProvider?.Add(lastArrivedServerState.tickId, lastArrivedServerState);
+                interpolationsProvider?.Add(lastArrivedServerState.tickId, lastArrivedServerState);
             }
             SnapTo(serverStateBuffer.GetEnd());
             lastAppliedFollowerTick = serverStateBuffer.GetEndTick();
@@ -143,7 +144,7 @@ namespace Prediction
             //Debug.Log($"[Prediction][BufferServerTick] tickId:{latestServerState.tickId}");
             if (AddServerState(lastAppliedTick, serverState))
             {
-                //interpolationsProvider?.Add(lastAppliedTick, latestServerState);
+                interpolationsProvider?.Add(lastAppliedTick, serverState);
                 //NOTE: somehow the server reports are in the future. Don't resimulate until we get there too
                 if (lastAppliedTick < serverState.tickId)
                     return;
