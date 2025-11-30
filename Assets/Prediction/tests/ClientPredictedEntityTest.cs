@@ -314,6 +314,7 @@ namespace Prediction.Tests
         [Test]
         public void TestMultiResimulationPrevention()
         {
+            entity.protectFromOversimulation = true;
             int resimulationsCounter = 0;
             entity.resimulation.AddEventListener((started) =>
             {

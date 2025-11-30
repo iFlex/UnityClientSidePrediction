@@ -4,6 +4,6 @@ namespace Prediction.policies.singleInstance
 {
     public interface SingleSnapshotInstanceResimChecker
     {
-        bool Check(PhysicsStateRecord local, PhysicsStateRecord server);
+        PredictionDecision Check(PhysicsStateRecord local, PhysicsStateRecord server);
     }
 }

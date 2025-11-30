@@ -23,19 +23,23 @@ namespace Prediction
         //This is used exclusively in follower mode (predicted entity not controlled by user).
         private uint lastAppliedFollowerTick = 0;
         
-        Func<uint, RingBuffer<PhysicsStateRecord>, TickIndexedBuffer<PhysicsStateRecord>, bool>
+        Func<uint, RingBuffer<PhysicsStateRecord>, TickIndexedBuffer<PhysicsStateRecord>, PredictionDecision>
             resimulationEligibilityCheckHook;
-        Func<PhysicsStateRecord, PhysicsStateRecord, bool> singleStateResimulationEligibilityHook;
+        Func<PhysicsStateRecord, PhysicsStateRecord, PredictionDecision> singleStateResimulationEligibilityHook;
         public PhysicsController physicsController;
         
         //TODO: make visible for testing in tests assembly
         public TickIndexedBuffer<PhysicsStateRecord> serverStateBuffer;
-
+        //TODO: proper wire in...
+        //public VisualsInterpolationsProvider interpolationsProvider;// = new MirrorSnapshotInterpolationBridge();
+            
         public uint totalTicks = 0;
         public uint totalResimulationSteps = 0;
         public uint totalResimulationStepsOverbudget = 0;
         public uint totalResimulations = 0;
         public uint totalSimulationSkips = 0;
+        public uint totalDesyncToSnapCount = 0;
+        
         public bool snapOnSimSkip = false;
         public bool protectFromOversimulation = false;
         
@@ -64,13 +68,13 @@ namespace Prediction
             }
         }
         
-        public void SetCustomEligibilityCheckHandler(Func<uint, RingBuffer<PhysicsStateRecord>, TickIndexedBuffer<PhysicsStateRecord>, bool> handler)
+        public void SetCustomEligibilityCheckHandler(Func<uint, RingBuffer<PhysicsStateRecord>, TickIndexedBuffer<PhysicsStateRecord>, PredictionDecision> handler)
         {
             resimulationEligibilityCheckHook = handler;
             singleStateResimulationEligibilityHook = null;
         }
 
-        public void SetSingleStateEligibilityCheckHandler(Func<PhysicsStateRecord, PhysicsStateRecord, bool> handler)
+        public void SetSingleStateEligibilityCheckHandler(Func<PhysicsStateRecord, PhysicsStateRecord, PredictionDecision> handler)
         {
             resimulationEligibilityCheckHook = _defaultResimulationEligibilityCheck;
             singleStateResimulationEligibilityHook = handler;
@@ -132,7 +136,11 @@ namespace Prediction
         {
             //TODO: debug gate
             //Debug.Log($"[ClientPredictedEntity][BufferFollowerServerTick] state:{lastArrivedServerState}");
-            AddServerState(lastAppliedFollowerTick, lastArrivedServerState);
+            if (AddServerState(lastAppliedFollowerTick, lastArrivedServerState))
+            {
+                //TODO: will this work correctly with tickId being always the same as the server's?
+                //interpolationsProvider?.Add(lastArrivedServerState.tickId, lastArrivedServerState);
+            }
             SnapTo(serverStateBuffer.GetEnd());
             lastAppliedFollowerTick = serverStateBuffer.GetEndTick();
         }
@@ -142,35 +150,50 @@ namespace Prediction
             //Debug.Log($"[Prediction][BufferServerTick] tickId:{latestServerState.tickId}");
             if (AddServerState(lastAppliedTick, latestServerState))
             {
+                //interpolationsProvider?.Add(lastAppliedTick, latestServerState);
                 //NOTE: somehow the server reports are in the future. Don't resimulate until we get there too
                 if (lastAppliedTick < latestServerState.tickId)
                     return;
                 
-                if (resimulationEligibilityCheckHook(latestServerState.tickId, localStateBuffer, serverStateBuffer))
+                var resimulateFromLocalState = localStateBuffer.Get((int)latestServerState.tickId);
+                PredictionDecision decision = resimulationEligibilityCheckHook(latestServerState.tickId, localStateBuffer, serverStateBuffer);
+                switch (decision)
                 {
-                    if (!protectFromOversimulation || CanResiumlate())
-                    {
-                        ResimulateFrom(latestServerState.tickId, lastAppliedTick, latestServerState);
-                    }
-                    else
-                    {
-                        totalSimulationSkips++;
-                        if (snapOnSimSkip)
-                        {
-                            SnapTo(latestServerState, true);
-                        }
-                    }
-                }
-                else
-                {
-                    predictionAcceptable.Dispatch(true);
+                    case PredictionDecision.NOOP:
+                        predictionAcceptable.Dispatch(true);
+                        break;
+                    
+                    case PredictionDecision.RESIMULATE:
+                        Resimulate(lastAppliedTick, resimulateFromLocalState, latestServerState);
+                        break;
+                    
+                    case PredictionDecision.SNAP:
+                        totalDesyncToSnapCount++;
+                        SnapTo(latestServerState, true);
+                        break;
                 }
                 //TODO: consider a decision where we need to pause simulation on client to let server catch up...
             }
             //Debug.Log($"[ClientPredictedEntity][BufferServerTick] server_delay:{lastAppliedTick - serverStateBuffer.GetEndTick()} state:{latestServerState}");
         }
 
-        bool _defaultResimulationEligibilityCheck(uint tickId, RingBuffer<PhysicsStateRecord> clientStates,
+        void Resimulate(uint lastAppliedTick, PhysicsStateRecord local, PhysicsStateRecord server)
+        {
+            if (!protectFromOversimulation || CanResiumlate())
+            {
+                ResimulateFrom(local.tickId, lastAppliedTick, server);
+            }
+            else
+            {
+                totalSimulationSkips++;
+                if (snapOnSimSkip)
+                {
+                    SnapTo(server, true);
+                }
+            }
+        }
+
+        PredictionDecision _defaultResimulationEligibilityCheck(uint tickId, RingBuffer<PhysicsStateRecord> clientStates,
             TickIndexedBuffer<PhysicsStateRecord> serverStates)
         {
             //TODO: ensure correct conversion from uint tick to index

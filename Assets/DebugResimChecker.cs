@@ -1,4 +1,5 @@
-﻿using Prediction.data;
+﻿using Prediction;
+using Prediction.data;
 using Prediction.policies.singleInstance;
 using UnityEngine;
 
@@ -11,7 +12,7 @@ namespace DefaultNamespace
         private float totalBreakingDist = 0;
         private int breakingDistCount = 0;
         
-        public override bool Check(PhysicsStateRecord l, PhysicsStateRecord s)
+        public override PredictionDecision Check(PhysicsStateRecord l, PhysicsStateRecord s)
         {
             float dist = (l.position - s.position).magnitude;
             if (dist > maxdist)
@@ -19,8 +20,8 @@ namespace DefaultNamespace
                 maxdist = dist;
             }
             
-            bool outcome = base.Check(l, s);
-            if (outcome)
+            PredictionDecision outcome = base.Check(l, s);
+            if (outcome == PredictionDecision.RESIMULATE)
             {
                 totalBreakingDist += dist;
                 breakingDistCount++;
