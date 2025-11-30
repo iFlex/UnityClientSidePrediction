@@ -31,10 +31,12 @@ namespace Prediction
         //TODO: make visible for testing in tests assembly
         public TickIndexedBuffer<PhysicsStateRecord> serverStateBuffer;
 
-        internal uint totalTicks = 0;
-        internal uint totalResimulationSteps = 0;
-        internal uint totalResimulationStepsOverbudget = 0;
-        internal uint totalResimulations = 0;
+        public uint totalTicks = 0;
+        public uint totalResimulationSteps = 0;
+        public uint totalResimulationStepsOverbudget = 0;
+        public uint totalResimulations = 0;
+        public uint totalSimulationSkips = 0;
+        
         public ClientPredictedEntity(int bufferSize, Rigidbody rb, GameObject visuals, PredictableControllableComponent[] controllablePredictionContributors, PredictableComponent[] predictionContributors) : base(rb, visuals, controllablePredictionContributors, predictionContributors)
         {
             rigidbody = rb;
@@ -127,7 +129,7 @@ namespace Prediction
         public void BufferFollowerServerTick(PhysicsStateRecord lastArrivedServerState)
         {
             //TODO: debug gate
-            Debug.Log($"[ClientPredictedEntity][BufferFollowerServerTick] state:{lastArrivedServerState}");
+            //Debug.Log($"[ClientPredictedEntity][BufferFollowerServerTick] state:{lastArrivedServerState}");
             AddServerState(lastAppliedFollowerTick, lastArrivedServerState);
             SnapTo(serverStateBuffer.GetEnd());
             lastAppliedFollowerTick = serverStateBuffer.GetEndTick();
@@ -150,6 +152,7 @@ namespace Prediction
                     }
                     else
                     {
+                        totalSimulationSkips++;
                         SnapTo(latestServerState, true);
                     }
                 }
@@ -159,6 +162,7 @@ namespace Prediction
                 }
                 //TODO: consider a decision where we need to pause simulation on client to let server catch up...
             }
+            //Debug.Log($"[ClientPredictedEntity][BufferServerTick] server_delay:{lastAppliedTick - serverStateBuffer.GetEndTick()} state:{latestServerState}");
         }
 
         bool _defaultResimulationEligibilityCheck(uint tickId, RingBuffer<PhysicsStateRecord> clientStates,
@@ -225,6 +229,8 @@ namespace Prediction
         
         public uint GetAverageResimPerTick()
         {
+            if (totalTicks == 0)
+                return 0;
             return totalResimulationSteps / totalTicks;
         }
         
@@ -239,6 +245,11 @@ namespace Prediction
             return totalResimulationStepsOverbudget;
         }
 
+        public uint GetServerDelay()
+        {
+            return totalTicks - serverStateBuffer.GetEndTick();
+        }
+        
         public SafeEventDispatcher<bool> predictionAcceptable = new();
         public SafeEventDispatcher<bool> resimulation = new();
         public SafeEventDispatcher<bool> resimulationStep = new();

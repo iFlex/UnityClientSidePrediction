@@ -44,6 +44,8 @@ namespace Prediction.Tests
             
             entity = new ServerPredictedEntity(20, rigidbody, test, new []{component}, new[]{component});
             physicsController = new MockPhysicsController();
+
+            entity.useBuffering = false;
         }
 
         static PredictionInputRecord[] GeneratePlayerInputReports(Vector3[] inputs)
@@ -274,6 +276,49 @@ namespace Prediction.Tests
             AssertPostServerTickState(9, serverPos[9], serverPos[9], entity.ServerSimulationTick());
         }
 
+        [Test]
+        public void TestBufferingBeforeSend()
+        {
+            entity.useBuffering = true;
+            entity.bufferRefillThreshold = 0;
+            entity.bufferFullThreshold = 3;
+            
+            Vector3[] serverInput =
+            {
+                Vector3.zero, //0
+                inputs[1],    //1
+                inputs[2],    //2
+                inputs[3],    //3
+                inputs[4],    //4
+                inputs[6],    //5
+                inputs[6],    //6
+                inputs[7],    //7
+                inputs[9],    //8
+                inputs[9]     //9
+            };
+
+            PhysicsStateRecord record = entity.ServerSimulationTick();
+            Assert.AreEqual(0, record.tickId);
+            entity.BufferClientTick(1, reports[1]);
+            record = entity.ServerSimulationTick();
+            Assert.AreEqual(0, record.tickId);
+            entity.BufferClientTick(2, reports[2]);
+            record = entity.ServerSimulationTick();
+            Assert.AreEqual(0, record.tickId);
+            entity.BufferClientTick(3, reports[3]);
+            record = entity.ServerSimulationTick();
+            Assert.AreEqual(1, record.tickId);
+            entity.BufferClientTick(4, reports[4]);
+            record = entity.ServerSimulationTick();
+            Assert.AreEqual(2, record.tickId);
+            entity.BufferClientTick(5, reports[5]);
+            record = entity.ServerSimulationTick();
+            Assert.AreEqual(3, record.tickId);
+            entity.BufferClientTick(6, reports[6]);
+            record = entity.ServerSimulationTick();
+            Assert.AreEqual(4, record.tickId);
+        }
+        
         //TODO: test buffer too big, skip ahead...
     }
 }

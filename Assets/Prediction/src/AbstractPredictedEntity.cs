@@ -5,7 +5,7 @@ namespace Prediction
 {
     public abstract class AbstractPredictedEntity : PredictableComponent
     {
-        protected Rigidbody rigidbody;
+        public Rigidbody rigidbody;
         protected GameObject detachedVisualsIdentity;
         
         protected PredictableControllableComponent[] controllablePredictionContributors;

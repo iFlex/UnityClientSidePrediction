@@ -60,6 +60,11 @@ public class PlayerController : NetworkBehaviour, PredictableComponent, Predicta
         {
             pcam.Follow = pev.transform;
         }
+
+        if (clientPredictedEntity != null && SingletonUtils.instance.clientText)
+        {
+            SingletonUtils.instance.clientText.text = $"Tick:{clientPredictedEntity.totalTicks}\n ServerDelay:{clientPredictedEntity.GetServerDelay()}\n Resimulations:{clientPredictedEntity.totalResimulations}\n AvgResimLen:{clientPredictedEntity.GetAverageResimPerTick()} TotalResimSteps:{clientPredictedEntity.totalResimulationSteps}\n Skips:{clientPredictedEntity.totalSimulationSkips}";
+        }
     }
 
     private Vector3 inputDir;
@@ -84,13 +89,13 @@ public class PlayerController : NetworkBehaviour, PredictableComponent, Predicta
         Vector3 input = Vector3.zero;
         if (Input.GetKey(KeyCode.UpArrow))
         {
-            //input += pcam.transform.forward;
-            input += pcam.transform.up;
+            input += pcam.transform.forward;
+            //input += pcam.transform.up;
         }
         if (Input.GetKey(KeyCode.DownArrow))
         {
-            //input += pcam.transform.forward * -1;
-            input += pcam.transform.up * -1;
+            input += pcam.transform.forward * -1;
+            //input += pcam.transform.up * -1;
         }
         if (Input.GetKey(KeyCode.LeftArrow))
         {

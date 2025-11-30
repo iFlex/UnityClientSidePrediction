@@ -7,7 +7,7 @@ namespace DefaultNamespace
     {
         public static SingletonUtils instance;
         public CinemachineCamera camera;
-
+        public TMPro.TMP_Text clientText;
         void Awake()
         {
             instance = this;

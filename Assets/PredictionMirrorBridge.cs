@@ -1,4 +1,5 @@
-﻿using Mirror;
+﻿using System.Collections.Generic;
+using Mirror;
 using Prediction;
 using Prediction.data;
 using Prediction.Simulation;
@@ -10,11 +11,12 @@ namespace DefaultNamespace
     public class PredictionMirrorBridge : NetworkBehaviour
     {
         //TODO: configurable fake server latency in tick counts to test high ping scenarios
-        
         public static bool MSG_DEBUG = false;
-        public static bool PRED_DEBUG = true;
+        public static bool PRED_DEBUG = false;
         
         [SerializeField] PredictionManager predictionManager;
+        [SerializeField] private TMPro.TMP_Text serverText;
+        
         public bool reliable = false;
         public int resimCounter = 0;
         public int resimSkipCounter = 0;
@@ -31,11 +33,16 @@ namespace DefaultNamespace
             PlayerController.spawned.RemoveEventListener(OnSpawned);
             PlayerController.despawned.RemoveEventListener(OnDespawned);
         }
-        
+
+        private SimplePhysicsControllerKinematic ktl;
         private void Start()
         {
             PhysicsController ctl = new SimplePhysicsController();
             predictionManager.Setup(isServer, isClient, ctl);
+
+            //ktl = new SimplePhysicsControllerKinematic();
+            //predictionManager.Setup(isServer, isClient, ktl);
+            ktl?.DetectAllBodies();
             
             if (isClient)
             {
@@ -115,6 +122,7 @@ namespace DefaultNamespace
                     });
                 }
             }
+            ktl?.DetectAllBodies();
         }
         
         void OnDespawned(PlayerController entity)
@@ -131,8 +139,22 @@ namespace DefaultNamespace
                     predictionManager.SetLocalEntity(0, null);
                 }
             }
+            ktl?.DetectAllBodies();
         }
 
+        void Update()
+        {
+            if (serverText)
+            {
+                serverText.text = "";
+                //TODO: make _serverEntityToId private again
+                foreach (KeyValuePair<ServerPredictedEntity, uint> pair in predictionManager._serverEntityToId)
+                {
+                    serverText.text += $"id:{pair.Value} skipped:{pair.Key.ticksWithoutInput} range:{pair.Key.BufferSize()}\n";
+                }
+            }
+        }
+        
         [Command(requiresAuthority = false, channel = Channels.Unreliable)]
         void ReportToServerUnreliable(uint tickId, PredictionInputRecord data, NetworkConnectionToClient sender = null)
         {

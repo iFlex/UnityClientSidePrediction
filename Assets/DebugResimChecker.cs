@@ -6,7 +6,7 @@ namespace DefaultNamespace
 {
     public class DebugResimChecker : SimpleConfigurableResimulationDecider
     {
-        public static bool PRED_DEBUG = true;
+        public static bool PRED_DEBUG = false;
         private float maxdist = 0;
         private float totalBreakingDist = 0;
         private int breakingDistCount = 0;
