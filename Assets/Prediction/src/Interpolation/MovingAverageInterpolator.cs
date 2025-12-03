@@ -1,5 +1,4 @@
 ﻿using System;
-using Mirror;
 using Prediction.data;
 using Prediction.utils;
 using UnityEngine;
@@ -8,6 +7,7 @@ namespace Prediction.Interpolation
 {
     public class MovingAverageInterpolator: VisualsInterpolationsProvider
     {
+        public static int DEBUG_COUNTER = 0;
         RingBuffer<PhysicsStateRecord> buffer = new RingBuffer<PhysicsStateRecord>(200);
         public RingBuffer<PhysicsStateRecord> averagedBuffer = new RingBuffer<PhysicsStateRecord>(3);
 
@@ -23,9 +23,14 @@ namespace Prediction.Interpolation
         public uint minVisualTickDelay = 2;
         public bool autosizeWindow = false;
         public Func<uint> GetServerTickLag;
-
+        public int debugCounterLocal;
+        
+        private uint smoothingTick = 0;
+        
         public MovingAverageInterpolator()
         {
+            debugCounterLocal = DEBUG_COUNTER;
+            DEBUG_COUNTER++;
             minVisualTickDelay = (uint) Mathf.CeilToInt(MinVisualDelay / Time.fixedDeltaTime);
         }
         
@@ -41,7 +46,8 @@ namespace Prediction.Interpolation
                 GetServerTickLag = serverLatencyFetcher;
             }
         }
-        
+
+        private uint pervTick = 0;
         public void Update(float deltaTime)
         {
             if (!CanStartInterpolation())
@@ -61,12 +67,20 @@ namespace Prediction.Interpolation
                 psr = GetInterpolationStartState();
                 time = GetTime(psr);
                 interpStarted = true;
+                pervTick = psr.tickId;
             }
             else
             {
                 psr = GetNextInterpolationTarget(time);
                 double targetTime = GetTime(psr);
                 interpolationProgress = (float)((targetTime - time) / tickInterval);
+                uint delta = psr.tickId - pervTick;
+                if (delta > 1)
+                {
+                    Debug.Log($"[LERP]({debugCounterLocal}) WARNING. Smooth Lerb skipped {delta} ticks.");
+                }
+                pervTick = psr.tickId;
+                //Debug.Log($"[LERP]({debugCounterLocal}) time:{time} targetTime:{targetTime} ttik:{psr.tickId} it:{interpolationProgress}  tickInterval:{tickInterval} deltaTime:{Time.deltaTime}");
             }
             ApplyState(psr, interpolationProgress);
         }
@@ -149,7 +163,8 @@ namespace Prediction.Interpolation
         PhysicsStateRecord GetNextProcessedState()
         {
             PhysicsStateRecord psr = new PhysicsStateRecord();
-            psr.tickId = buffer.GetEnd().tickId;
+            psr.tickId = smoothingTick;
+            smoothingTick++;
             
             if (buffer.GetFill() < slidingWindowTickSize)
             {

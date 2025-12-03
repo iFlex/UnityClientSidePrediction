@@ -54,26 +54,37 @@ namespace Prediction
 
         //TODO: configurable
         private float defaultLerpFactor = 20f;
+        private PhysicsStateRecord rec;
         void Update()
         {
+            //TODO: make this more efficient
+            if (serverGhost)
+                serverGhost.SetActive(SHOW_DBG);
+            if (clientGhost)
+                clientGhost.SetActive(SHOW_DBG);
+            
+            if (!follow || !visualsDetached)
+                return;
+
+            rec = clientPredictedEntity.serverStateBuffer.GetEnd();
             if (debug)
             {
-                PhysicsStateRecord rec = clientPredictedEntity?.serverStateBuffer.GetEnd();
                 if (rec != null && serverGhost)
                 {
                     serverGhost.transform.position = rec.position;
                     serverGhost.transform.rotation = rec.rotation;   
                 }
-                if (serverGhost)
-                    serverGhost.SetActive(SHOW_DBG);
-                if (clientGhost)
-                    clientGhost.SetActive(SHOW_DBG);
             }
             
-            if (!follow || !visualsDetached)
-                return;
-            
-            clientPredictedEntity.interpolationsProvider.Update(Time.deltaTime);
+            if (clientPredictedEntity.isControlledLocally)
+            {
+                clientPredictedEntity.interpolationsProvider.Update(Time.deltaTime);
+            }
+            else
+            {
+                transform.position = rec.position;
+                transform.rotation = rec.rotation;
+            }
         }
     }
 }

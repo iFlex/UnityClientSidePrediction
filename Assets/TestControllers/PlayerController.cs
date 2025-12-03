@@ -37,7 +37,6 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
 
     public void Customize()
     {
-        Debug.Log("PAINT_IT!");
         renderer.material.color = Color.yellow;
     }
 
@@ -49,20 +48,13 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
     
     public override void OnStartClient()
     {
-        if (!isServer || isOwned)
-        {
-            ConfigurePrediction(!isServer);
-        }
+        ConfigurePrediction(isOwned && !isServer);
     }
 
     public override void OnStartAuthority()
     {
-        if (!isServer || isOwned)
-        {
-            clientPredictedEntity.isControlledLocally = true;
-            SingletonUtils.localCPE = clientPredictedEntity;
-        }
-        
+        clientPredictedEntity.isControlledLocally = isOwned;
+        SingletonUtils.localCPE = clientPredictedEntity;
         SetCamera(SingletonUtils.instance.povCam);
         Customize();
     }
@@ -82,12 +74,11 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
         {
             pcam.Follow = pev.visualsEntity.transform;
             SingletonUtils.instance.topCam.Follow = pev.visualsEntity.transform;
-            //pcam.Follow = clientPredictedEntity.gameObject.transform;
         }
 
         if (clientPredictedEntity != null && SingletonUtils.instance.clientText)
         {
-            SingletonUtils.instance.clientText.text = $"Tick:{clientPredictedEntity.totalTicks}\n ServerDelay:{clientPredictedEntity.GetServerDelay()}\n Resimulations:{clientPredictedEntity.totalResimulations}\n AvgResimLen:{clientPredictedEntity.GetAverageResimPerTick()} TotalResimSteps:{clientPredictedEntity.totalResimulationSteps}\n Skips:{clientPredictedEntity.totalSimulationSkips}\n Velo:{clientPredictedEntity.rigidbody.linearVelocity.magnitude}\n DistThres:{SingletonUtils.CURRENT_DECIDER.distResimThreshold}\n SmoothWindow:{SingletonUtils.localVisInterpolator.slidingWindowTickSize}";
+            SingletonUtils.instance.clientText.text = $"Tick:{clientPredictedEntity.totalTicks}\n ServerDelay:{clientPredictedEntity.GetServerDelay()}\n Resimulations:{clientPredictedEntity.totalResimulations}\n AvgResimLen:{clientPredictedEntity.GetAverageResimPerTick()} TotalResimSteps:{clientPredictedEntity.totalResimulationSteps}\n Skips:{clientPredictedEntity.totalSimulationSkips}\n Velo:{clientPredictedEntity.rigidbody.linearVelocity.magnitude}\n DistThres:{SingletonUtils.CURRENT_DECIDER.distResimThreshold}\n SmoothWindow:{SingletonUtils.localVisInterpolator.slidingWindowTickSize}\n FPS:{1/Time.deltaTime}\n FrameTime:{Time.deltaTime}";
         }
     }
     
