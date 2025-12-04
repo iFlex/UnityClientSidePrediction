@@ -11,6 +11,9 @@ namespace Prediction
     //TODO: decoule the implementation from Time.fixedDeltaTime, have it be configurable
     public class PredictionManager: MonoBehaviour
     {
+        //TODO: guard singleton
+        public static PredictionManager Instance;
+        
         [SerializeField] private GameObject localGO;
         private ClientPredictedEntity localEntity;
         private uint localEntityId;
@@ -31,7 +34,12 @@ namespace Prediction
         public Action<uint, PhysicsStateRecord>    serverStateSender;
         
         private SingleSnapshotInstanceResimChecker singleSnapshotInstanceResimChecker;
-        
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
         public void Setup(bool isServer, bool isClient, PhysicsController physicsController)
         {
             setup = true;
@@ -40,6 +48,16 @@ namespace Prediction
             this.physicsController = physicsController;
             physicsController.Setup(isServer);
             singleSnapshotInstanceResimChecker ??= new SimpleConfigurableResimulationDecider();
+        }
+
+        private void OnDisable()
+        {
+            Instance = null;
+        }
+
+        private void OnDestroy()
+        {
+            Instance = null;
         }
 
         public void SetResimulationChecker(SingleSnapshotInstanceResimChecker checker)

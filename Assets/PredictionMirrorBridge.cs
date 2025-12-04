@@ -27,12 +27,14 @@ namespace DefaultNamespace
         private DebugResimChecker resimulationDecider = new DebugResimChecker();
         private void Awake()
         {
+            //TODO: offer auto wiring for this in module
             PlayerController.spawned.AddEventListener(OnSpawned);
             PlayerController.despawned.AddEventListener(OnDespawned);
         }
 
         private void OnDestroy()
         {
+            //TODO: offer auto wiring for this in module
             PlayerController.spawned.RemoveEventListener(OnSpawned);
             PlayerController.despawned.RemoveEventListener(OnDespawned);
         }

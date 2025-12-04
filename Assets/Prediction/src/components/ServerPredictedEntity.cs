@@ -33,6 +33,7 @@ namespace Prediction
         
         public ServerPredictedEntity(int bufferSize, Rigidbody rb, GameObject visuals, PredictableControllableComponent[] controllablePredictionContributors, PredictableComponent[] predictionContributors) : base(rb, visuals, controllablePredictionContributors, predictionContributors)
         {
+            gameObject = rb.gameObject;
             //TODO: configurable how much to wait before sim start...
             _waitTicksBeforeSimStart = 0;
             waitTicksBeforeSimStart = _waitTicksBeforeSimStart;
