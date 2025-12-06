@@ -287,7 +287,6 @@ namespace DefaultNamespace
             {
                 Debug.Log($"[PredictionMirrorBridge][SwitchOwnership][SERVER_INIT] connId:{connectionId}");
                 newObject.OnStartAuthority();
-                newObject.gameObject.GetComponent<PlayerController>().WireAsCtl();
             }
             predictionManager.SetEntityOwner(newObject.serverPredictedEntity, connectionId);
             UpdateControlledObject(NetworkServer.connections[connectionId], newObject);
@@ -302,6 +301,7 @@ namespace DefaultNamespace
             localPredMono = newObj;
             localPredMono.SetControlledLocally(true);
             predictionManager.SetLocalEntity(newObj.netId, newObj.clientPredictedEntity);
+            SingletonUtils.localCPE = localPredMono.clientPredictedEntity;
         }
     }
 }
