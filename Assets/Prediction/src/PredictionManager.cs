@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Assets.Scripts.Systems.Events;
 using Prediction.data;
+using Prediction.Interpolation;
 using Prediction.policies.singleInstance;
 using Prediction.Simulation;
 using UnityEngine;
@@ -13,6 +14,8 @@ namespace Prediction
     {
         //TODO: guard singleton
         public static PredictionManager Instance;
+        public static Func<VisualsInterpolationsProvider> INTERPOLATION_PROVIDER = () => new MovingAverageInterpolator();
+        public static SingleSnapshotInstanceResimChecker SNAPSHOT_INSTANCE_RESIM_CHECKER = new SimpleConfigurableResimulationDecider();
         
         [SerializeField] private GameObject localGO;
         private ClientPredictedEntity localEntity;
@@ -34,8 +37,6 @@ namespace Prediction
         public Action<uint, PredictionInputRecord> clientStateSender;
         public Action<uint, uint, PhysicsStateRecord>    serverStateSender;
         
-        private SingleSnapshotInstanceResimChecker singleSnapshotInstanceResimChecker;
-
         private void Awake()
         {
             Instance = this;
@@ -48,7 +49,6 @@ namespace Prediction
             this.isClient = isClient;
             this.physicsController = physicsController;
             physicsController.Setup(isServer);
-            singleSnapshotInstanceResimChecker ??= new SimpleConfigurableResimulationDecider();
         }
 
         private void OnDisable()
@@ -59,11 +59,6 @@ namespace Prediction
         private void OnDestroy()
         {
             Instance = null;
-        }
-
-        public void SetResimulationChecker(SingleSnapshotInstanceResimChecker checker)
-        {
-            singleSnapshotInstanceResimChecker = checker;    
         }
 
         public void SetEntityOwner(ServerPredictedEntity entity, int ownerId)
@@ -147,7 +142,7 @@ namespace Prediction
                 localEntityId = id;
                 localGO = entity.gameObject;
                 entity.physicsController = physicsController;
-                entity.SetSingleStateEligibilityCheckHandler(singleSnapshotInstanceResimChecker.Check);   
+                entity.SetSingleStateEligibilityCheckHandler(SNAPSHOT_INSTANCE_RESIM_CHECKER.Check);   
             }
         }
 

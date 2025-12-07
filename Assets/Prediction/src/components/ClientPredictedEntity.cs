@@ -17,6 +17,7 @@ namespace Prediction
         Func<uint, RingBuffer<PhysicsStateRecord>, TickIndexedBuffer<PhysicsStateRecord>, PredictionDecision>
             resimulationEligibilityCheckHook;
         Func<PhysicsStateRecord, PhysicsStateRecord, PredictionDecision> singleStateResimulationEligibilityHook;
+        //TODO: module private?
         public PhysicsController physicsController;
         
         //STATE

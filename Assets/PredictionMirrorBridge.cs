@@ -71,7 +71,6 @@ namespace DefaultNamespace
             
             if (isClient)
             {
-                predictionManager.SetResimulationChecker(resimulationDecider);
                 predictionManager.clientStateSender = (tickId, data) =>
                 {
                     if (MSG_DEBUG)

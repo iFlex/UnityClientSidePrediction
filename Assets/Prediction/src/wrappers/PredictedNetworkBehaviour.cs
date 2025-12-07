@@ -1,5 +1,4 @@
 ﻿using Mirror;
-using Prediction.Interpolation;
 using UnityEngine;
 
 namespace Prediction.wrappers
@@ -86,8 +85,7 @@ namespace Prediction.wrappers
         void ConfigureAsClient(bool controlledLocally)
         {
             clientPredictedEntity = new ClientPredictedEntity(30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
-            //TODO: configurable interpolator
-            visuals.SetClientPredictedEntity(clientPredictedEntity, new MovingAverageInterpolator());
+            visuals.SetClientPredictedEntity(clientPredictedEntity, PredictionManager.INTERPOLATION_PROVIDER());
             SetControlledLocally(controlledLocally);
         }
         
