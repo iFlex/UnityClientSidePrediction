@@ -30,6 +30,7 @@ namespace Prediction.wrappers
 
             isReady = ready;
         }
+        
         void OnEnable()
         {
             if (initialConfig)
@@ -59,11 +60,8 @@ namespace Prediction.wrappers
                 return;
             }
             
-            ConfigureAsClient(isOwned);
-            if (!isOwned)
-            {
-                SetReady(true);
-            }
+            ConfigureAsClient(false);
+            SetReady(true);
         }
 
         public override void OnStartAuthority()
@@ -72,7 +70,8 @@ namespace Prediction.wrappers
             {
                 ConfigureAsClient(true);
             }
-            SetControlledLocally(isOwned);
+            
+            SetControlledLocally(true);
             SetReady(true);
         }
 
@@ -109,7 +108,10 @@ namespace Prediction.wrappers
         public void SetControlledLocally(bool controlledLocally)
         {
             Debug.Log($"[PredictedNetworkBehaviour][SetControlledLocally]({netId}):{controlledLocally}");
-            ((PredictedEntity)this).RegisterControlledLocally();
+            if (controlledLocally)
+            {
+                ((PredictedEntity)this).RegisterControlledLocally();
+            }
             visuals.Reset();
             clientPredictedEntity?.SetControlledLocally(controlledLocally);
         }

@@ -51,11 +51,6 @@ namespace Prediction
             physicsController.Setup(isServer);
         }
 
-        private void OnDisable()
-        {
-            Instance = null;
-        }
-
         private void OnDestroy()
         {
             Instance = null;
