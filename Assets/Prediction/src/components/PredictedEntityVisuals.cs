@@ -42,9 +42,11 @@ namespace Prediction
             {
                 serverGhost = Instantiate(serverGhostPrefab, Vector3.zero, Quaternion.identity);
                 clientGhost = Instantiate(clientGhostPrefab, Vector3.zero, Quaternion.identity, clientPredictedEntity.gameObject.transform);
+                clientGhost.transform.localPosition = Vector3.zero;
+                clientGhost.transform.localRotation = Quaternion.identity;
             }
             
-            clientPredictedEntity.newInterpolationStateReached.AddEventListener(AggregateState);
+            clientPredictedEntity.newStateReached.AddEventListener(AggregateState);
         }
 
         void AggregateState(PhysicsStateRecord state)

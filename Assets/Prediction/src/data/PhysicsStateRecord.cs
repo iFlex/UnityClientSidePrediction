@@ -19,6 +19,21 @@ namespace Prediction.data
             angularVelocity = rigidbody.angularVelocity;
         }
 
+        public void From(PhysicsStateRecord record)
+        {
+            tickId = record.tickId;
+            position = record.position;
+            rotation = record.rotation;
+            velocity = record.velocity;
+            angularVelocity = record.angularVelocity;
+        }
+        
+        public void From(PhysicsStateRecord record, uint tickOverride)
+        {
+            From(record);
+            tickId = tickOverride;
+        }
+
         public override string ToString()
         {
             return $"t:{tickId} p:{position} r:{rotation} v:{velocity} ang:{angularVelocity}";

@@ -23,7 +23,7 @@ namespace DefaultNamespace
         [SerializeField] private TMPro.TMP_Text serverText;
         [SerializeField] private GameObject sharedGOPrefab;
         public GameObject sharedGO;
-        public PredictedNetworkBehaviour sharedPredMono;
+        [SyncVar] public PredictedNetworkBehaviour sharedPredMono;
         public PredictedNetworkBehaviour localPredMono;
         
         private Dictionary<int, PredictedNetworkBehaviour> originalOwnership = new Dictionary<int, PredictedNetworkBehaviour>();
@@ -57,6 +57,12 @@ namespace DefaultNamespace
             {
                 manager.sendRate = Mathf.CeilToInt(1f / Time.fixedDeltaTime) * sendRateMultiplier;   
             }
+            
+            if (Input.GetKeyDown(KeyCode.X) && sharedPredMono)
+            {
+                Debug.Log("[FAKE_IT_TILL_YOU_TEST_IT]");
+                ((PredictedEntity)sharedPredMono).ApplyClientForce(rb => rb.AddForce(Vector3.left * 5));
+            }
         }
 
         private SimplePhysicsControllerKinematic ktl;
@@ -68,7 +74,7 @@ namespace DefaultNamespace
             //ktl = new SimplePhysicsControllerKinematic();
             //predictionManager.Setup(isServer, isClient, ktl);
             ktl?.DetectAllBodies();
-            
+            predictionManager.roundTripTimeGetter = () => NetworkTime.rtt;
             if (isClient)
             {
                 predictionManager.clientStateSender = (tickId, data) =>
@@ -107,11 +113,11 @@ namespace DefaultNamespace
                 };
                 
                 sharedGO = Instantiate(sharedGOPrefab, Vector3.one, Quaternion.identity);
-                sharedPredMono = sharedGO.GetComponent<PredictedNetworkBehaviour>();
                 NetworkServer.Spawn(sharedGO);
+                sharedPredMono = sharedGO.GetComponent<PredictedNetworkBehaviour>();
             }
         }
-
+        
         void OnSpawned(PlayerController entity)
         {
             if (isServer)
@@ -152,6 +158,7 @@ namespace DefaultNamespace
                 //TODO: make _serverEntityToId private again
                 foreach (KeyValuePair<ServerPredictedEntity, uint> pair in predictionManager._serverEntityToId)
                 {
+                    //TODO: NOTE: i think elements remain in the buffer somehow and cause the range: reading to be incorrect and keep going up...
                     serverText.text += $"id:{pair.Value} skipped:{pair.Key.ticksWithoutInput} range:{pair.Key.BufferSize()} inputJumps:{pair.Key.inputJumps}\n";
                 }
             }
@@ -234,6 +241,7 @@ namespace DefaultNamespace
             return ownership.GetValueOrDefault(connectionId, null);
         }
         
+        //TODO: support this in module, not just outside...
         [Server]
         public void SwitchOwnership(int connectionId, PredictedNetworkBehaviour newObject)
         {
@@ -250,10 +258,16 @@ namespace DefaultNamespace
             
             //NOTE, since this is just for show, set it to some stupid number
             predictionManager.SetEntityOwner(pnb.serverPredictedEntity, 9999);
-
+            
+            int oldOwnerId = entityIdToOwner.GetValueOrDefault(pnb.netId, 0);
+            uint oldId = pnb.netId;
+            RemoveLocalControl(NetworkServer.connections[oldOwnerId], newObject);
+            ownership.Remove(oldOwnerId);
+            entityIdToOwner.Remove(oldId);
+            
+            //Set new
             ownership[connectionId] = newObject;
             entityIdToOwner[newObject.netId] = connectionId;
-            
             newObject.Reset();
             
             if (newObject == sharedPredMono && newObject.clientPredictedEntity == null)
@@ -262,6 +276,7 @@ namespace DefaultNamespace
                 newObject.OnStartAuthority();
             }
             predictionManager.SetEntityOwner(newObject.serverPredictedEntity, connectionId);
+            
             UpdateControlledObject(NetworkServer.connections[connectionId], newObject);
         }
 
@@ -273,8 +288,13 @@ namespace DefaultNamespace
             
             localPredMono = newObj;
             localPredMono.SetControlledLocally(true);
-            predictionManager.SetLocalEntity(newObj.netId, newObj.clientPredictedEntity);
             SingletonUtils.localCPE = localPredMono.clientPredictedEntity;
+        }
+
+        [TargetRpc]
+        public void RemoveLocalControl(NetworkConnectionToClient conn, PredictedNetworkBehaviour entity)
+        {
+            entity.SetControlledLocally(false);
         }
     }
 }

@@ -1,4 +1,7 @@
-﻿namespace Prediction.wrappers
+﻿using System;
+using UnityEngine;
+
+namespace Prediction.wrappers
 {
     public interface PredictedEntity
     {
@@ -10,12 +13,34 @@
         bool IsControlledLocally();
         bool IsServer();
         bool IsClient();
+        bool IsClientOnly()
+        {
+            return IsClient() && !IsServer();
+        }
+
+        Rigidbody GetRigidbody();
         
-        void RegisterControlledLocally()
+        void ApplyClientForce(Action<Rigidbody> applier)
+        {
+            if (IsClientOnly())
+            {
+                applier.Invoke(GetRigidbody());
+                GetClientEntity().MarkInteractionWithLocalAuthority();
+            }
+        }
+        
+        void RegisterControlledLocally(bool isControlled)
         {
             if (IsClient())
             {
-                PredictionManager.Instance.SetLocalEntity(GetId(), GetClientEntity());    
+                if (isControlled)
+                {
+                    PredictionManager.Instance.SetLocalEntity(GetId());    
+                }
+                else
+                {
+                    PredictionManager.Instance.UnsetLocalEntity(GetId());    
+                }
             }
         }
         

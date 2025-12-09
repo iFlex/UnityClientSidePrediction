@@ -40,7 +40,7 @@ namespace Prediction.wrappers
         void ConfigureAsClient(bool controlledLocally)
         {
             //TODO: detect or wire components
-            clientPredictedEntity = new ClientPredictedEntity(30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
+            clientPredictedEntity = new ClientPredictedEntity(false, 30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
             clientPredictedEntity.gameObject = gameObject;
             //TODO: configurable interpolator
             visuals.SetClientPredictedEntity(clientPredictedEntity, new MovingAverageInterpolator());
@@ -63,9 +63,14 @@ namespace Prediction.wrappers
             return true;
         }
 
+        public Rigidbody GetRigidbody()
+        {
+            return _rigidbody;
+        }
+
         public void SetControlledLocally(bool controlledLocally)
         {
-            ((PredictedEntity)this).RegisterControlledLocally();
+            ((PredictedEntity)this).RegisterControlledLocally(controlledLocally);
             visuals.Reset();
             clientPredictedEntity?.SetControlledLocally(controlledLocally);
         }
@@ -101,6 +106,15 @@ namespace Prediction.wrappers
         {
             //TODO: needs a provider here
             return 0;
+        }
+        
+        private void OnCollisionEnter(Collision other)
+        {
+            if (IsClient() && !IsServer())
+            {
+                //TODO: determine if other is predicted too
+                //GetClientEntity().MarkInteractionWithLocalAuthority();
+            }
         }
     }
 }

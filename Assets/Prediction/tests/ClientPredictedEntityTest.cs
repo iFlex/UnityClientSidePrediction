@@ -28,7 +28,7 @@ namespace Prediction.Tests
             component.rigidbody = rigidbody;
             physicsController = new MockPhysicsController();
             
-            entity = new ClientPredictedEntity(20, rigidbody, test, new []{component}, new[]{component});
+            entity = new ClientPredictedEntity(false, 20, rigidbody, test, new []{component}, new[]{component});
             entity.SetSingleStateEligibilityCheckHandler(resimDecider.Check);
             entity.physicsController = physicsController;
         }

@@ -19,7 +19,10 @@ namespace Prediction.wrappers
         public bool isReady { get; private set; }
         
         [SerializeField] private bool initialConfig = false;
-
+        [SerializeField] private bool dbgIsLocallyControlled;
+        [SerializeField] private int dbgGOID;
+        [SerializeField] private uint dbgNetID;
+        
         private void SetReady(bool ready)
         {
             if (isReady != ready && ready)
@@ -47,7 +50,7 @@ namespace Prediction.wrappers
         public override void OnStartServer()
         {
             ConfigureAsServer();
-            if (!isOwned)
+            if (isServerOnly)
             {
                 SetReady(true);
             }
@@ -57,22 +60,18 @@ namespace Prediction.wrappers
         {
             if (isServer)
             {
-                return;
+                ConfigureAsServerClient(false);
             }
-            
-            ConfigureAsClient(false);
+            else
+            {
+                ConfigureAsClient(false);
+            }
             SetReady(true);
         }
 
         public override void OnStartAuthority()
         {
-            if (isServer)
-            {
-                ConfigureAsServerClient(true);
-            }
-            
             SetControlledLocally(true);
-            SetReady(true);
         }
 
         //TODO: use common methods instead of duplicating the code here...
@@ -83,14 +82,14 @@ namespace Prediction.wrappers
 
         void ConfigureAsClient(bool controlledLocally)
         {
-            clientPredictedEntity = new ClientPredictedEntity(30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
+            clientPredictedEntity = new ClientPredictedEntity(false, 30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
             SetControlledLocally(controlledLocally);
             visuals.SetClientPredictedEntity(clientPredictedEntity, PredictionManager.INTERPOLATION_PROVIDER());
         }
 
         void ConfigureAsServerClient(bool controlledLocally)
         {
-            clientPredictedEntity = new ClientPredictedEntity(30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
+            clientPredictedEntity = new ClientPredictedEntity(true, 30, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));
             SetControlledLocally(controlledLocally);
         }
         
@@ -111,13 +110,15 @@ namespace Prediction.wrappers
             return isClient;
         }
 
+        public Rigidbody GetRigidbody()
+        {
+            return _rigidbody;
+        }
+
         public void SetControlledLocally(bool controlledLocally)
         {
-            Debug.Log($"[PredictedNetworkBehaviour][SetControlledLocally]({netId}):{controlledLocally}");
-            if (controlledLocally)
-            {
-                ((PredictedEntity)this).RegisterControlledLocally();
-            }
+            Debug.Log($"[PredictedNetworkBehaviour][SetControlledLocally]({netId}) goID:{gameObject.GetInstanceID()} local:{controlledLocally}");
+            ((PredictedEntity)this).RegisterControlledLocally(controlledLocally);
             visuals.Reset();
             clientPredictedEntity?.SetControlledLocally(controlledLocally);
         }
@@ -154,6 +155,24 @@ namespace Prediction.wrappers
         public virtual int GetOwnerId()
         {
             return (netIdentity.connectionToClient == null) ? 0 : netIdentity.connectionToClient.connectionId;
+        }
+
+        private void OnCollisionEnter(Collision other)
+        {
+            if (IsClient() && !IsServer())
+            {
+                //TODO: determine if other is predicted too
+                //GetClientEntity().MarkInteractionWithLocalAuthority();
+            }
+        }
+        
+        //TODO: on collision stay?
+
+        void Update()
+        {
+            dbgGOID = gameObject.GetInstanceID();
+            dbgNetID = netId;
+            dbgIsLocallyControlled = IsControlledLocally();
         }
     }
 }

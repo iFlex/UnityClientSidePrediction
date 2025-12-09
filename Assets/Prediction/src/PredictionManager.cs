@@ -12,6 +12,7 @@ namespace Prediction
     //TODO: decoule the implementation from Time.fixedDeltaTime, have it be configurable
     public class PredictionManager: MonoBehaviour
     {
+        public static bool DEBUG = false;
         //TODO: guard singleton
         public static PredictionManager Instance;
         public static Func<VisualsInterpolationsProvider> INTERPOLATION_PROVIDER = () => new MovingAverageInterpolator();
@@ -21,11 +22,12 @@ namespace Prediction
         private ClientPredictedEntity localEntity;
         private uint localEntityId;
         
+        //TODO: protected
         public Dictionary<ServerPredictedEntity, uint> _serverEntityToId = new Dictionary<ServerPredictedEntity, uint>();
         private Dictionary<uint, ServerPredictedEntity> _idToServerEntity = new Dictionary<uint, ServerPredictedEntity>();
         private Dictionary<ServerPredictedEntity, int> _entityToOwnerConnId = new Dictionary<ServerPredictedEntity, int>();
         private Dictionary<int, ServerPredictedEntity> _connIdToEntity = new Dictionary<int, ServerPredictedEntity>();
-        private Dictionary<uint, ClientPredictedEntity> _nonControlledPredictedEntities = new Dictionary<uint, ClientPredictedEntity>();
+        private Dictionary<uint, ClientPredictedEntity> _clientEntities = new Dictionary<uint, ClientPredictedEntity>();
         
         private bool isClient;
         private bool isServer;
@@ -34,8 +36,9 @@ namespace Prediction
         private bool setup = false;
         private PhysicsController physicsController;
         
-        public Action<uint, PredictionInputRecord> clientStateSender;
+        public Action<uint, PredictionInputRecord>       clientStateSender;
         public Action<uint, uint, PhysicsStateRecord>    serverStateSender;
+        public Func<double> roundTripTimeGetter;
         
         private void Awake()
         {
@@ -81,7 +84,8 @@ namespace Prediction
             
             _serverEntityToId[entity] = id;
             _idToServerEntity[id] = entity;
-            Debug.Log($"[PredictionManager][AddPredictedEntity] SERVER ({id})=>({entity})");
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][AddPredictedEntity] SERVER ({id})=>({entity})");
         }
         
         //TODO: uniform way of removing them
@@ -100,45 +104,64 @@ namespace Prediction
             _serverEntityToId.Remove(entity);
             _entityToOwnerConnId.Remove(entity);
             
-            Debug.Log($"[PredictionManager][RemovePredictedEntity] entity:{entity}");
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][RemovePredictedEntity] entity:{entity}");
         }
 
         public void AddPredictedEntity(uint id, ClientPredictedEntity entity)
         {
             if (entity == null)
                 return;
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][AddPredictedEntity] CLIENT ({id})=>({entity})");
             
-            Debug.Log($"[PredictionManager][AddPredictedEntity] CLIENT ({id})=>({entity})");
-            _nonControlledPredictedEntities[id] = entity;
+            _clientEntities[id] = entity;
         }
 
         public void RemovePredictedEntity(uint id)
         {
-            Debug.Log($"[PredictionManager][RemovePredictedEntity]({id})");
-            _nonControlledPredictedEntities.Remove(id);
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][RemovePredictedEntity]({id})");
+            
+            _clientEntities.Remove(id);
             if (id == localEntityId)
             {
-                SetLocalEntity(0, null);
+                UnsetLocalEntity(id);
             }
             RemovePredictedEntity(_idToServerEntity.GetValueOrDefault(id));
         }
-
-        public void SetLocalEntity(uint id, ClientPredictedEntity entity)
+        
+        public void SetLocalEntity(uint id)
         {
-            Debug.Log($"[PredictionManager][SetLocalEntity]({id})=>{entity}");
-            if (entity == null)
-                return;
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][SetLocalEntity]({id})");
             
-            localEntity = entity;
+            localEntity = _clientEntities.GetValueOrDefault(id, null);
             localEntityId = 0;
-            if (entity != null)
+            if (localEntity != null)
             {
                 //TODO: consider moving the id fetching mechanic inside entity
                 localEntityId = id;
-                localGO = entity.gameObject;
-                entity.physicsController = physicsController;
-                entity.SetSingleStateEligibilityCheckHandler(SNAPSHOT_INSTANCE_RESIM_CHECKER.Check);   
+                localGO = localEntity.gameObject;
+                localEntity.physicsController = physicsController;
+                localEntity.SetSingleStateEligibilityCheckHandler(SNAPSHOT_INSTANCE_RESIM_CHECKER.Check);
+                
+                lastClientAppliedTick = 0;
             }
+        }
+
+        public void UnsetLocalEntity(uint id)
+        {
+            if (localEntityId == id)
+            {
+                UnsetLocalEntity();
+            }
+        }
+
+        void UnsetLocalEntity()
+        {
+            localEntity = null;
+            localEntityId = 0;
         }
 
         public ClientPredictedEntity GetLocalEntity()
@@ -153,29 +176,67 @@ namespace Prediction
                 return;
             
             tickId++;
+            ClientPreSimTick();
+            ServerPreSimTick();
+            physicsController.Simulate();
+            CommonPostSimTick();
+        }
+
+        void ClientPreSimTick()
+        {
             if (isClient)
             {
-                if (localEntity != null)
+                foreach (KeyValuePair<uint, ClientPredictedEntity> pair in _clientEntities)
                 {
-                    PredictionInputRecord tickInputRecord = localEntity.ClientSimulationTick(tickId);
-                    lastClientAppliedTick = tickId;
-                    if (!isServer)
+                    if (pair.Value.isControlledLocally)
                     {
-                        try
+                        if (pair.Value != localEntity)
                         {
-                            clientStateSender?.Invoke(tickId, tickInputRecord);
+                            Debug.LogError($"[PredictionManager] ClientEntity != LocalEntity. Client:{pair.Value} Local:{localEntity}");
+                            continue;
                         }
-                        catch (Exception e)
+                        
+                        if (DEBUG)
+                            Debug.Log($"[PredictionManager][ClientPreSimTick] Client:{pair.Value} tick:{tickId}");
+                        
+                        PredictionInputRecord tickInputRecord = pair.Value.ClientSimulationTick(tickId);
+                        lastClientAppliedTick = tickId;
+                        if (!isServer)
                         {
-                            EntityProcessingError err;
-                            err.exception = e;
-                            err.entity = localEntity;
-                            onClientStateSendError.Dispatch(err);
-                        }   
+                            try
+                            {
+                                if (DEBUG)
+                                    Debug.Log($"[PredictionManager][ClientPreSimTick][SEND] goID:{pair.Value.gameObject.GetInstanceID()} Client:{pair.Value} tick:{tickId}");
+                                clientStateSender?.Invoke(tickId, tickInputRecord);
+                            }
+                            catch (Exception e)
+                            {
+                                EntityProcessingError err;
+                                err.exception = e;
+                                err.entity = pair.Value;
+                                onClientStateSendError.Dispatch(err);
+                            }   
+                        }        
+                    }
+                    else if (!isServer)
+                    {
+                        //Only run this on the pure client yo... 
+                        pair.Value.ClientFollowerSimulationTick();
                     }
                 }
             }
-            
+        }
+
+        void CommonPostSimTick()
+        {
+            foreach (KeyValuePair<uint, ClientPredictedEntity> pair in _clientEntities)
+            {
+                pair.Value.SamplePhysicsState(tickId);
+            }
+        }
+
+        void ServerPreSimTick()
+        {
             if (isServer)
             {
                 foreach (KeyValuePair<ServerPredictedEntity, uint> pair in _serverEntityToId)
@@ -208,14 +269,8 @@ namespace Prediction
                     }
                 }
             }
-            
-            physicsController.Simulate();
-            if (localEntity != null)
-            {
-                localEntity.SamplePhysicsState(tickId);
-            }
         }
-        
+
         public void OnFollowerServerStateReceived(uint entityId, PhysicsStateRecord stateRecord)
         {
             if (!isClient)
@@ -227,7 +282,7 @@ namespace Prediction
                 return;
             }
             
-            ClientPredictedEntity entity = _nonControlledPredictedEntities.GetValueOrDefault(entityId, null);
+            ClientPredictedEntity entity = _clientEntities.GetValueOrDefault(entityId, null);
             if (entity != null)
             {
                 entity.BufferFollowerServerTick(stateRecord);
@@ -247,14 +302,22 @@ namespace Prediction
                 return;
             
             ServerPredictedEntity entity = _connIdToEntity.GetValueOrDefault(connId);
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][OnClientStateReceiver] connId:{connId} clientTickId:{clientTickId} tickInputRecord:{tickInputRecord} ENTITY:{entity}");
             entity?.BufferClientTick(clientTickId, tickInputRecord);
         }
 
+        public uint GetServerTickDelay()
+        {
+            return (uint) Mathf.CeilToInt((float)(roundTripTimeGetter() / Time.fixedDeltaTime));
+        }
+        
         public struct EntityProcessingError
         {
             public Exception exception;
             public AbstractPredictedEntity entity;
         }
+        
         public SafeEventDispatcher<EntityProcessingError> onServerStateSendError = new();
         public SafeEventDispatcher<EntityProcessingError> onClientStateSendError = new();
     }

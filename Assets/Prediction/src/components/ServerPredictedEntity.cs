@@ -9,6 +9,8 @@ namespace Prediction
     //TODO: document in readme
     public class ServerPredictedEntity : AbstractPredictedEntity
     {
+        public static bool DEBUG = false;
+        
         public GameObject gameObject;
         private PhysicsStateRecord serverStateBfr = new PhysicsStateRecord();
         private uint tickId;
@@ -27,10 +29,17 @@ namespace Prediction
         private bool bufferFilling = true;
         public bool useBuffering = true;
         
+        //NOTE: if the client updates buffer grows past a certain threshold
+        //that means the server has fallen behind time wise. So we should snap ahead to the latest client state.
+        protected float snapToClientThreshold = 0.3f;
+        protected int snapToClientTickCountThreshold = 0;
+        public bool snapToClient = false;
+        
         //STATS
         public uint invalidInputs = 0;
         public uint ticksWithoutInput = 0;
         public uint lateTickCount = 0;
+        public uint totalSnapAheadCounter = 0;
         
         public ServerPredictedEntity(int bufferSize, Rigidbody rb, GameObject visuals, PredictableControllableComponent[] controllablePredictionContributors, PredictableComponent[] predictionContributors) : base(rb, visuals, controllablePredictionContributors, predictionContributors)
         {
@@ -41,6 +50,14 @@ namespace Prediction
             
             inputQueue = new TickIndexedBuffer<PredictionInputRecord>(bufferSize);
             inputQueue.emptyValue = null;
+
+            SetSnapToClientThreshold(snapToClientThreshold);
+        }
+
+        public void SetSnapToClientThreshold(float threshold)
+        {
+            snapToClientThreshold = threshold;
+            snapToClientTickCountThreshold = Mathf.CeilToInt(snapToClientThreshold / Time.fixedDeltaTime);
         }
 
         private uint lastAppliedTick = 0;
@@ -48,6 +65,8 @@ namespace Prediction
         public PhysicsStateRecord ServerSimulationTick()
         {
             PredictionInputRecord nextInput = TakeNextInput();
+            if (DEBUG)
+                Debug.Log($"[ServerPredictedEntity][ServerSimulationTick] goID:{gameObject.GetInstanceID()} lastAppliedTick:{lastAppliedTick} buffRange:{inputQueue.GetRange()} buffFill:{inputQueue.GetFill()} nextInput:{nextInput}");
             if (nextInput != null)
             {
                 int delta = (int)(tickId > lastAppliedTick ? tickId - lastAppliedTick : lastAppliedTick - tickId);
@@ -84,6 +103,9 @@ namespace Prediction
         
         public void BufferClientTick(uint clientTickId, PredictionInputRecord inputRecord)
         {
+            if (DEBUG)
+                Debug.Log($"[ServerPredictedEntity][BufferClientTick]({gameObject.GetInstanceID()}) clientTickId:{clientTickId} input:{inputRecord}");
+            
             if (inputQueue.GetFill() == 0)
             {
                 firstTickArrived.Dispatch(true);
@@ -96,6 +118,11 @@ namespace Prediction
             else
             {
                 lateTickCount++;
+            }
+
+            if (ShouldSnapToClient())
+            {
+                SnapToLatest();
             }
         }
         
@@ -167,12 +194,28 @@ namespace Prediction
             inputQueue.Clear();
             bufferFilling = true;
             tickId = 0;
-            bufferFilling = true;
-            useBuffering = true;
-        
+            
             invalidInputs = 0;
             ticksWithoutInput = 0;
             lateTickCount = 0;
+        }
+
+        bool ShouldSnapToClient()
+        {
+            if (snapToClient && snapToClientTickCountThreshold > 1)
+            {
+                return inputQueue.GetFill() >= snapToClientTickCountThreshold;
+            }
+            return false;
+        }
+        
+        void SnapToLatest()
+        {
+            if (DEBUG)
+                Debug.Log($"[ServerPredictedEntity][SnapToLatest]({gameObject.GetInstanceID()})");
+            totalSnapAheadCounter++;
+            inputQueue.Clear();
+            bufferFilling = true;
         }
         
         public SafeEventDispatcher<bool> simulationStarted = new();

@@ -4,8 +4,10 @@ using Mirror;
 using Prediction;
 using Prediction.data;
 using Prediction.Interpolation;
+using Prediction.policies.singleInstance;
 using Prediction.wrappers;
 using Unity.Cinemachine;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public abstract class PlayerController : NetworkBehaviour, PredictableComponent, PredictableControllableComponent
@@ -24,6 +26,8 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
     
     void Start()
     {
+        SingletonUtils.CURRENT_DECIDER =
+            (SimpleConfigurableResimulationDecider)PredictionManager.SNAPSHOT_INSTANCE_RESIM_CHECKER;
         if (isShared)
         {
             renderer.material.color = Color.red;
@@ -91,7 +95,7 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
             SingletonUtils.instance.topCam.Follow = predictedMono.visuals.transform;
         }
         
-        if (predictedMono.clientPredictedEntity != null && predictedMono.clientPredictedEntity.isControlledLocally && SingletonUtils.instance.clientText)
+        if (predictedMono.IsControlledLocally() && SingletonUtils.instance.clientText)
         {
             SingletonUtils.instance.clientText.text = $"Tick:{predictedMono.clientPredictedEntity.totalTicks}\n " +
                                                       $"ServerDelay:{predictedMono.clientPredictedEntity.GetServerDelay()}\n " +
@@ -100,10 +104,10 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
                                                       $"TotalResimSteps:{predictedMono.clientPredictedEntity.totalResimulationSteps}\n " +
                                                       $"Skips:{predictedMono.clientPredictedEntity.totalSimulationSkips}\n " +
                                                       $"Velo:{predictedMono.clientPredictedEntity.rigidbody.linearVelocity.magnitude}\n " +
-                                                      $"DistThres:{SingletonUtils.CURRENT_DECIDER.distResimThreshold}\n " +
-                                                      $"SmoothWindow:{SingletonUtils.localVisInterpolator.slidingWindowTickSize}\n " +
+                                                      $"DistThres:{((SimpleConfigurableResimulationDecider)PredictionManager.SNAPSHOT_INSTANCE_RESIM_CHECKER).distResimThreshold}\n " +
+                                                      $"SmoothWindow:{(SingletonUtils.localVisInterpolator != null ? SingletonUtils.localVisInterpolator.slidingWindowTickSize : -1)}\n " +
                                                       $"FPS:{1/Time.deltaTime}\n " +
-                                                      $"FrameTime:{Time.deltaTime}";
+                                                      $"FrameTime:{Time.deltaTime}\n";
         }
     }
     

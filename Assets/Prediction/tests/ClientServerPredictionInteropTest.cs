@@ -35,7 +35,7 @@ namespace Prediction.Tests
             clientComponent = new MockPredictableControllableComponent();
             clientComponent.rigidbody = clientRigidbody;
             
-            clientEntity = new ClientPredictedEntity(20, clientRigidbody, client, new []{clientComponent}, new[]{clientComponent});
+            clientEntity = new ClientPredictedEntity(false,20, clientRigidbody, client, new []{clientComponent}, new[]{clientComponent});
             clientEntity.SetSingleStateEligibilityCheckHandler(resimDecider.Check);
             clientEntity.physicsController = physicsController;
             
