@@ -33,7 +33,6 @@ namespace Prediction
             //TODO: what? why artifficial delay?
             currentTimeStep -= artifficialDelay;
             
-            //TODO: listen for destruction events
             visualsDetached = true;
             visualsEntity.transform.SetParent(null);
             

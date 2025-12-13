@@ -28,5 +28,13 @@ namespace Prediction.Simulation
         {
             //NOOP
         }
+
+        public void Track(Rigidbody rigidbody)
+        {
+        }
+
+        public void Untrack(Rigidbody rigidbody)
+        {
+        }
     }
 }

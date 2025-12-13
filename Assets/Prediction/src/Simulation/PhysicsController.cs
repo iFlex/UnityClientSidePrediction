@@ -1,4 +1,6 @@
-﻿namespace Prediction.Simulation
+﻿using UnityEngine;
+
+namespace Prediction.Simulation
 {
     public interface PhysicsController
     {
@@ -7,5 +9,7 @@
         void BeforeResimulate(ClientPredictedEntity entity);
         void Resimulate(ClientPredictedEntity entity);
         void AfterResimulate(ClientPredictedEntity entity);
+        void Track(Rigidbody rigidbody);
+        void Untrack(Rigidbody rigidbody);
     }
 }

@@ -30,6 +30,14 @@ namespace Prediction.Tests.mocks
         public void AfterResimulate(ClientPredictedEntity entity)
         {
         }
+
+        public void Track(Rigidbody rigidbody)
+        {
+        }
+
+        public void Untrack(Rigidbody rigidbody)
+        {
+        }
     }
 }
 #endif

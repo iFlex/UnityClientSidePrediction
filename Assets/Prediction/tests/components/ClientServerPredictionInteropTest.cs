@@ -38,6 +38,7 @@ namespace Prediction.Tests
             clientEntity = new ClientPredictedEntity(false,20, clientRigidbody, client, new []{clientComponent}, new[]{clientComponent});
             clientEntity.SetSingleStateEligibilityCheckHandler(resimDecider.Check);
             clientEntity.physicsController = physicsController;
+            clientEntity.SetControlledLocally(true);
             
             server = new GameObject("test");
             server.transform.position = Vector3.zero;

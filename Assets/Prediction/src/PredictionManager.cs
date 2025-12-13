@@ -17,6 +17,7 @@ namespace Prediction
         public static PredictionManager Instance;
         public static Func<VisualsInterpolationsProvider> INTERPOLATION_PROVIDER = () => new MovingAverageInterpolator();
         public static SingleSnapshotInstanceResimChecker SNAPSHOT_INSTANCE_RESIM_CHECKER = new SimpleConfigurableResimulationDecider();
+        public static PhysicsController PHYSICS_CONTROLLED = new SimplePhysicsControllerKinematic();
         public static Func<double> ROUND_TRIP_GETTER;
         
         [SerializeField] private GameObject localGO;
@@ -36,23 +37,22 @@ namespace Prediction
         private uint tickId;
         private uint lastClientAppliedTick;
         private bool setup = false;
-        private PhysicsController physicsController;
         
         public Action<uint, PredictionInputRecord>       clientStateSender;
         public Action<uint, uint, PhysicsStateRecord>    serverStateSender;
+        public bool autoTrackRigidbodies = true;
         
         private void Awake()
         {
             Instance = this;
         }
 
-        public void Setup(bool isServer, bool isClient, PhysicsController physicsController)
+        public void Setup(bool isServer, bool isClient)
         {
             setup = true;
             this.isServer = isServer;
             this.isClient = isClient;
-            this.physicsController = physicsController;
-            physicsController.Setup(isServer);
+            PHYSICS_CONTROLLED.Setup(isServer);
         }
 
         private void OnDestroy()
@@ -89,9 +89,24 @@ namespace Prediction
             if (DEBUG)
                 Debug.Log($"[PredictionManager][AddPredictedEntity] SERVER ({id})=>({entity})");
         }
+
+        public void AddPredictedEntity(uint id, ClientPredictedEntity entity)
+        {
+            if (entity == null)
+                return;
+            
+            if (DEBUG)
+                Debug.Log($"[PredictionManager][AddPredictedEntity] CLIENT ({id})=>({entity})");
+            
+            _clientEntities[id] = entity;
+            _predictedEntities.Add(entity.gameObject);
+            if (autoTrackRigidbodies)
+            {
+                PHYSICS_CONTROLLED.Track(entity.rigidbody);
+            }
+        }
         
-        //TODO: uniform way of removing them
-        public void RemovePredictedEntity(ServerPredictedEntity entity)
+        private void RemovePredictedEntity(ServerPredictedEntity entity)
         {
             if (entity == null)
                 return;
@@ -111,27 +126,6 @@ namespace Prediction
                 Debug.Log($"[PredictionManager][RemovePredictedEntity] entity:{entity}");
         }
 
-        public void AddPredictedEntity(uint id, ClientPredictedEntity entity)
-        {
-            if (entity == null)
-                return;
-            if (DEBUG)
-                Debug.Log($"[PredictionManager][AddPredictedEntity] CLIENT ({id})=>({entity})");
-            
-            _clientEntities[id] = entity;
-            _predictedEntities.Add(entity.gameObject);
-        }
-
-        public bool IsPredicted(GameObject entity)
-        {
-            return _predictedEntities.Contains(entity);
-        }
-
-        public bool IsPredicted(Rigidbody entity)
-        {
-            return _predictedEntities.Contains(entity.gameObject);
-        }
-
         public void RemovePredictedEntity(uint id)
         {
             if (DEBUG)
@@ -139,12 +133,31 @@ namespace Prediction
             
             ClientPredictedEntity ent = _clientEntities.GetValueOrDefault(id, null);
             _clientEntities.Remove(id);
-            _predictedEntities.Remove(ent.gameObject);
+            if (ent != null)
+            {
+                _predictedEntities.Remove(ent.gameObject);
+                if (autoTrackRigidbodies)
+                {
+                    PHYSICS_CONTROLLED.Untrack(ent.rigidbody);
+                }
+            }
             if (id == localEntityId)
             {
                 UnsetLocalEntity(id);
             }
             RemovePredictedEntity(_idToServerEntity.GetValueOrDefault(id));
+        }
+        
+        public bool IsPredicted(GameObject entity)
+        {
+            return _predictedEntities.Contains(entity);
+        }
+
+        public bool IsPredicted(Rigidbody entity)
+        {
+            if (!entity)
+                return false;
+            return _predictedEntities.Contains(entity.gameObject);
         }
         
         public void SetLocalEntity(uint id)
@@ -156,10 +169,10 @@ namespace Prediction
             localEntityId = 0;
             if (localEntity != null)
             {
-                //TODO: consider moving the id fetching mechanic inside entity
+                //FUDO: consider moving the id fetching mechanic inside entity
                 localEntityId = id;
                 localGO = localEntity.gameObject;
-                localEntity.physicsController = physicsController;
+                localEntity.physicsController = PHYSICS_CONTROLLED;
                 localEntity.SetSingleStateEligibilityCheckHandler(SNAPSHOT_INSTANCE_RESIM_CHECKER.Check);
                 
                 lastClientAppliedTick = 0;
@@ -194,7 +207,7 @@ namespace Prediction
             tickId++;
             ClientPreSimTick();
             ServerPreSimTick();
-            physicsController.Simulate();
+            PHYSICS_CONTROLLED.Simulate();
             CommonPostSimTick();
         }
 

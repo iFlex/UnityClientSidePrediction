@@ -1,56 +1,36 @@
-﻿using Prediction.data;
+﻿using System.Collections.Generic;
+using Prediction.data;
 using UnityEngine;
 
 namespace Prediction.Simulation
 {
     public class SimplePhysicsControllerKinematic : PhysicsController
     {
-        //TODO: save velocity state before and after resim
-        private Rigidbody[] bodies;
-        private PhysicsStateRecord[] states;
-        private Vector3[] accForces;
-        private Vector3[] accTorques;
-        
-        public void DetectAllBodies()
-        {
-            bodies = Object.FindObjectsOfType<Rigidbody>();
-            states = new PhysicsStateRecord[bodies.Length];
-            accForces = new Vector3[bodies.Length];
-            accTorques = new Vector3[bodies.Length];
-            for (int i = 0; i < bodies.Length; i++)
-            {
-                states[i] = new PhysicsStateRecord();
-                Debug.Log($"[SimplePhysicsControllerKinematic][DetectAllBodies] Detected:{bodies[i]} State:{states[i]}");
-            }
-            SaveStates();
-        }
+        private Dictionary<Rigidbody, PhysicsStateRecord> trackedBodies = new();
 
         void SaveStates()
         {
-            for (int i = 0; i < bodies.Length; i++)
+            foreach (KeyValuePair<Rigidbody, PhysicsStateRecord> pair in trackedBodies)
             {
-                states[i].From(bodies[i]);
-                //TODO: probably not useful...
-                accForces[i] = bodies[i].GetAccumulatedForce();
-                accTorques[i] = bodies[i].GetAccumulatedTorque();
-                Debug.Log($"[SimplePhysicsControllerKinematic][SaveStates] Body:{bodies[i]} State:{states[i]}");
+                pair.Value.From(pair.Key);
+                pair.Key.isKinematic = true;
             }
         }
 
         void LoadStates(Rigidbody ignore)
         {
-            for (int i = 0; i < bodies.Length; i++)
+            foreach (KeyValuePair<Rigidbody, PhysicsStateRecord> pair in trackedBodies)
             {
-                if (bodies[i] == ignore)
+                if (pair.Key == ignore)
                 {
                     continue;
                 }
                 
-                bodies[i].position = states[i].position;
-                bodies[i].rotation = states[i].rotation;
-                bodies[i].linearVelocity = states[i].velocity;
-                bodies[i].angularVelocity = states[i].angularVelocity;
-                Debug.Log($"[SimplePhysicsControllerKinematic][LoadStates] Body:{bodies[i]} State:{states[i]}");
+                pair.Key.isKinematic = false;
+                pair.Key.position = pair.Value.position;
+                pair.Key.rotation = pair.Value.rotation;
+                pair.Key.linearVelocity = pair.Value.velocity;
+                pair.Key.angularVelocity = pair.Value.angularVelocity;
             }
         }
         
@@ -67,10 +47,6 @@ namespace Prediction.Simulation
         public void BeforeResimulate(ClientPredictedEntity entity)
         {
             SaveStates();
-            for (int i = 0; i < bodies.Length; i++)
-            {
-                bodies[i].isKinematic = true;
-            }
             entity.rigidbody.isKinematic = false;
         }
 
@@ -81,11 +57,19 @@ namespace Prediction.Simulation
 
         public void AfterResimulate(ClientPredictedEntity entity)
         {
-            for (int i = 0; i < bodies.Length; i++)
-            {
-                bodies[i].isKinematic = false;
-            }
             LoadStates(entity.rigidbody);
+        }
+
+        public void Track(Rigidbody rigidbody)
+        {
+            PhysicsStateRecord record = new PhysicsStateRecord();
+            record.From(rigidbody);
+            trackedBodies[rigidbody] = record;
+        }
+
+        public void Untrack(Rigidbody rigidbody)
+        {
+            trackedBodies.Remove(rigidbody);
         }
     }
 }

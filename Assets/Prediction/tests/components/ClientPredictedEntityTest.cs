@@ -31,6 +31,7 @@ namespace Prediction.Tests
             entity = new ClientPredictedEntity(false, 20, rigidbody, test, new []{component}, new[]{component});
             entity.SetSingleStateEligibilityCheckHandler(resimDecider.Check);
             entity.physicsController = physicsController;
+            entity.SetControlledLocally(true);
         }
 
         [TearDown]
@@ -310,7 +311,47 @@ namespace Prediction.Tests
         }
         
         //TODO: test follow server
-        //TODO: test blend with follow server
+        [Test]
+        public void TestFollowerHappyPath()
+        {
+            
+        }
+        
+        [Test]
+        public void TestFollowerReorder()
+        {
+            
+        }
+        
+        [Test]
+        public void TestFollowerLatencyAndDrops()
+        {
+            
+        }
+        
+        [Test]
+        public void TestFollowerMissingSrvMessages()
+        {
+            
+        }
+        
+        [Test]
+        public void TestBlendHappyPath()
+        {
+            
+        }
+        
+        [Test]
+        public void TestBlendEarlyExit()
+        {
+            
+        }
+        
+        [Test]
+        public void TestBlendSnapToCalls()
+        {
+            
+        }
     }
 }
 #endif

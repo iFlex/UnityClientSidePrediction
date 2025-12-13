@@ -29,5 +29,13 @@ namespace Prediction.Simulation
         {
             //TODO: use separate scene
         }
+
+        public void Track(Rigidbody rigidbody)
+        {
+        }
+
+        public void Untrack(Rigidbody rigidbody)
+        {
+        }
     }
 }

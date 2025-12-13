@@ -5,7 +5,6 @@ using UnityEngine;
 
 namespace Prediction
 {
-    //TODO: unit test
     //TODO: document in readme
     public class ServerPredictedEntity : AbstractPredictedEntity
     {
@@ -18,7 +17,8 @@ namespace Prediction
         private uint _waitTicksBeforeSimStart;
         private uint waitTicksBeforeSimStart;
         
-        TickIndexedBuffer<PredictionInputRecord> inputQueue;
+        //TODO: package private
+        public TickIndexedBuffer<PredictionInputRecord> inputQueue;
         
         //NOTE: Possible to buffer user inputs if needed to try and ensure a closer to client simulation on the server at the
         //cost of delaying the server behind the client by a small margin. The more you buffer, the more the server is delayed, the less reliable is the client image.

@@ -77,5 +77,4 @@ public class PlayerMirrorController : NetworkBehaviour
     {
         rb.AddForce(powerMagnitude * (boost ? boostPowerMultiplier : 1) * inpt.normalized);
     }
-    
 }

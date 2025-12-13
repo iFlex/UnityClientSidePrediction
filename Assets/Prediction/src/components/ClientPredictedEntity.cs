@@ -12,7 +12,7 @@ namespace Prediction
     //TODO: add ability to switch from locally controlled to not locally controlled
     public class ClientPredictedEntity : AbstractPredictedEntity
     {
-        public static bool DEBUG = true;
+        public static bool DEBUG = false;
         
         //STATE TRACKING
         public uint maxAllowedAvgResimPerTick = 1;
@@ -178,7 +178,8 @@ namespace Prediction
             {
                 stateData = followerStateBuffer.Get((int)followerState.tickId);
                 PopulatePhysicsStateRecord(followerState.tickId, stateData);
-                Debug.Log($"[ClientPredictedEntity][SamplePhysicsState] ({gameObject.GetInstanceID()}) tickId:{followerState.tickId} PhysicsSampled:{stateData}");
+                if (DEBUG)
+                    Debug.Log($"[ClientPredictedEntity][SamplePhysicsState] ({gameObject.GetInstanceID()}) tickId:{followerState.tickId} PhysicsSampled:{stateData}");
                 //TODO: can we reuse the localStateBuffer? it's a waste to have a completely separate one...
                 followerState.Sample();
             }
@@ -368,7 +369,8 @@ namespace Prediction
             
             //TODO: wire this getter in or wire in the prediction manager (however that's coupling)
             uint serverLatencyInTicks = PredictionManager.GetServerTickDelay() * blendIntervalMultiplier;
-            Debug.Log($"[ClientPredictedEntity][Blend][MarkInteractionWithLocalAuthority](goId:{gameObject.GetInstanceID()}) delay:{serverLatencyInTicks} totalInter:{totalInteractionsWithLocalAuthority} tickId:{followerState.tickId}");
+            if (DEBUG)
+                Debug.Log($"[ClientPredictedEntity][Blend][MarkInteractionWithLocalAuthority](goId:{gameObject.GetInstanceID()}) delay:{serverLatencyInTicks} totalInter:{totalInteractionsWithLocalAuthority} tickId:{followerState.tickId}");
             
             followerState.overlapWithAuthorityStart = followerState.tickId;
             followerState.overlapWithAuthorityEnd = followerState.tickId + serverLatencyInTicks;
@@ -405,14 +407,15 @@ namespace Prediction
                 {
                     PhysicsStateRecord record = blendedFollowStateBuffer.Get((int) followerState.tickId);
                     SnapTo(record);
-                    Debug.Log($"[ClientPredictedEntity][Blend][TickOverlapWithAuthority][2](goId:{gameObject.GetInstanceID()}) BlendedTick({record}) tickId:{followerState.tickId}");
+                    if (DEBUG)
+                        Debug.Log($"[ClientPredictedEntity][Blend][TickOverlapWithAuthority][2](goId:{gameObject.GetInstanceID()}) BlendedTick({record}) tickId:{followerState.tickId}");
                 }
-                else
+                else if (DEBUG)
                 {
                     Debug.Log($"[ClientPredictedEntity][Blend][TickOverlapWithAuthority][2](goId:{gameObject.GetInstanceID()}) BlendedTick(APPLY_SKIPPED) tickId:{followerState.tickId}");
                 }
             }
-            else
+            else if (DEBUG)
             {
                 Debug.Log($"[ClientPredictedEntity][Blend][TickOverlapWithAuthority][2](goId:{gameObject.GetInstanceID()}) BlendedTick([SKIP]) tickId:{followerState.tickId}");
             }

@@ -7,7 +7,6 @@ using Prediction.Interpolation;
 using Prediction.policies.singleInstance;
 using Prediction.wrappers;
 using Unity.Cinemachine;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public abstract class PlayerController : NetworkBehaviour, PredictableComponent, PredictableControllableComponent
@@ -15,7 +14,7 @@ public abstract class PlayerController : NetworkBehaviour, PredictableComponent,
     [SerializeField] protected Rigidbody rb;
     [SerializeField] protected Renderer renderer;
     [SerializeField] protected bool isShared = false;
-    //TODO: 
+    //TODO: serializable
     [SerializeField] public PredictedNetworkBehaviour predictedMono; // { get; private set; }
     
     public CinemachineCamera pcam;

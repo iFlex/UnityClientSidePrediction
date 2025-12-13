@@ -2,19 +2,14 @@
 using Mirror;
 using Prediction;
 using Prediction.data;
-using Prediction.Simulation;
 using Prediction.wrappers;
 using UnityEngine;
 
 namespace DefaultNamespace
 {
-    //TODO: problem 1: why is the ball moving differently on the client vs server when rotation is fixed?
     public class PredictionMirrorBridge : NetworkBehaviour
     {
         public static PredictionMirrorBridge Instance;
-        //TODO: configurable fake server latency in tick counts to test high ping scenarios
-        //TODO: track owner connection of client
-
         public static bool MSG_DEBUG = false;
         public static bool PRED_DEBUG = false;
 
@@ -39,14 +34,12 @@ namespace DefaultNamespace
         private void Awake()
         {
             Instance = this;
-            //TODO: offer auto wiring for this in module
             PlayerController.spawned.AddEventListener(OnSpawned);
             PlayerController.despawned.AddEventListener(OnDespawned);
         }
         
         private void OnDestroy()
         {
-            //TODO: offer auto wiring for this in module
             PlayerController.spawned.RemoveEventListener(OnSpawned);
             PlayerController.despawned.RemoveEventListener(OnDespawned);
         }
@@ -68,15 +61,9 @@ namespace DefaultNamespace
             }
         }
 
-        private SimplePhysicsControllerKinematic ktl;
         private void Start()
         {
-            //PhysicsController ctl = new SimplePhysicsController();
-            //predictionManager.Setup(isServer, isClient, ctl);
-
-            ktl = new SimplePhysicsControllerKinematic();
-            predictionManager.Setup(isServer, isClient, ktl);
-            ktl?.DetectAllBodies();
+            predictionManager.Setup(isServer, isClient);
             PredictionManager.ROUND_TRIP_GETTER = () => NetworkTime.rtt;
             if (isClient)
             {
@@ -102,16 +89,6 @@ namespace DefaultNamespace
                 {
                     if (MSG_DEBUG)
                         Debug.Log($"[PredictionMirrorBridge][clientStateSender] SEND server_report: netId:{entityNetId} tickId:{data.tickId} data:{data}");
-                    /*
-                    if (reliable)
-                    {
-                        ReportFromServerReliable(entityNetId, data);
-                    }
-                    else
-                    {
-                        //ReportFromServerUnreliable(entityNetId, data);
-                    }
-                    */
                     SendTargetedReportFromServer(entityNetId, serverTick, data, reliable);
                 };
                 
@@ -145,12 +122,10 @@ namespace DefaultNamespace
                     entity.predictedMono.SetControlledLocally(true);
                 }
             }
-            ktl?.DetectAllBodies();
         }
         
         void OnDespawned(PlayerController entity)
         {
-            ktl?.DetectAllBodies();
         }
 
         void Update()
@@ -210,7 +185,7 @@ namespace DefaultNamespace
             if (MSG_DEBUG)
                 Debug.Log($"[PredictionMirrorBridge][ReportFromServer] Received serrver_report: netId:{entityNetId} tickId:{data.tickId} data:{data}");
             
-            data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
+            //data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
             predictionManager.OnFollowerServerStateReceived(entityNetId, data);
         }
         
@@ -220,7 +195,7 @@ namespace DefaultNamespace
             if (MSG_DEBUG)
                 Debug.Log($"[PredictionMirrorBridge][ReportFromServer] Received serrver_report: netId:{entityNetId} tickId:{data.tickId} data:{data}");
             
-            data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
+            //data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
             predictionManager.OnFollowerServerStateReceived(entityNetId, data);
         }
         
@@ -230,7 +205,7 @@ namespace DefaultNamespace
             if (MSG_DEBUG)
                 Debug.Log($"[PredictionMirrorBridge][ReportFromServer] Received serrver_report: netId:{entityNetId} tickId:{data.tickId} data:{data}");
             
-            data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
+            //data.tmpServerTime = NetworkClient.connection.remoteTimeStamp;
             predictionManager.OnFollowerServerStateReceived(entityNetId, data);
         }
 
@@ -244,7 +219,6 @@ namespace DefaultNamespace
             return ownership.GetValueOrDefault(connectionId, null);
         }
         
-        //TODO: support this in module, not just outside...
         [Server]
         public void SwitchOwnership(int connectionId, PredictedNetworkBehaviour newObject)
         {

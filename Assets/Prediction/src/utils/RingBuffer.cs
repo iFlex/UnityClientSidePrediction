@@ -1,6 +1,5 @@
 ﻿namespace Prediction.utils
 {
-    //TODO: unit test
     public class RingBuffer<T>
     {
         public T emptyValue = default(T);

@@ -74,7 +74,6 @@ namespace Prediction.wrappers
             SetControlledLocally(true);
         }
 
-        //TODO: use common methods instead of duplicating the code here...
         void ConfigureAsServer()
         {
             serverPredictedEntity = new ServerPredictedEntity(bufferSize, _rigidbody, visuals.gameObject, WrapperHelpers.GetControllableComponents(components), WrapperHelpers.GetComponents(components));

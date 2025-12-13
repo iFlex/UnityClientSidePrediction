@@ -5,13 +5,13 @@ using UnityEngine;
 
 namespace Prediction.Interpolation
 {
+    //TODO: do we need a common interpolator class with the buffering logic? can this live in the visuals class?
     public class MovingAverageInterpolator: VisualsInterpolationsProvider
     {
         public static int DEBUG_COUNTER = 0;
         RingBuffer<PhysicsStateRecord> buffer = new RingBuffer<PhysicsStateRecord>(200);
         public RingBuffer<PhysicsStateRecord> averagedBuffer = new RingBuffer<PhysicsStateRecord>(3);
 
-        //TODO: eliminate the need for a ref here
         private Transform target;
         private double tickInterval = Time.fixedDeltaTime;
         
@@ -147,7 +147,6 @@ namespace Prediction.Interpolation
         public void Add(PhysicsStateRecord record)
         {
             buffer.Add(record);
-            //TODO: implement a configurable type or average here   
             averagedBuffer.Add(GetNextProcessedState());
         }
 

@@ -319,8 +319,33 @@ namespace Prediction.Tests
             Assert.AreEqual(4, record.tickId);
         }
         
-        //TODO: test buffer too big, skip ahead...
-        //TODO: test buffer keeps enlarging, skip ahead?
+        [Test]
+        public void TestBufferSkipAhead()
+        {
+            float interval = 0.15f;
+            int count = Mathf.CeilToInt(interval / Time.fixedDeltaTime) - 1;
+            entity.SetSnapToClientThreshold(interval);
+            for (int i = 0; i < count; i++)
+            {
+                entity.BufferClientTick((uint) i, reports[1]);
+            }
+            
+            Assert.AreEqual(count - 1, entity.inputQueue.GetFill());
+            entity.BufferClientTick((uint) count, reports[2]);
+            Assert.AreEqual(1, entity.inputQueue.GetFill());
+            Assert.AreEqual(reports[2], entity.inputQueue.GetEnd());
+        }
+        
+        [Test]
+        public void TestBufferSkipAheadDuringNormalOp()
+        {
+        }
+        
+        //TODO: test buffer too big, skip ahead 2...
+        [Test]
+        public void TestBufferSkipAheadWhenSlowlyFallingBehind()
+        {
+        }
     }
 }
 #endif
