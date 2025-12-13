@@ -365,6 +365,7 @@ namespace Prediction
         public uint totalBlendedFollowerTicksSnapTo = 0;
         public uint totalServerFollowerTicks = 0;
         public bool subsequentCollisionsExtendInterval = true;
+        public bool collisionsResetBlendIntervalCompletely = false;
         public uint blendIntervalMultiplier = 3;
         
         //NOTE: external entry point
@@ -383,7 +384,7 @@ namespace Prediction
             if (DEBUG)
                 Debug.Log($"[ClientPredictedEntity][Blend][MarkInteractionWithLocalAuthority](goId:{gameObject.GetInstanceID()}) delay:{serverLatencyInTicks} totalInter:{totalInteractionsWithLocalAuthority} tickId:{followerState.tickId}");
 
-            if (!isSubsequentInteraction)
+            if (!isSubsequentInteraction || collisionsResetBlendIntervalCompletely)
             {
                 followerState.overlapWithAuthorityStart = followerState.tickId;
             }
